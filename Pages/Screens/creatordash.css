@@ -1,0 +1,202 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to right, #4b6cb7, #182848); /* Blue and purple gradient */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #ffffff;
+}
+
+.container {
+    width: 100%;
+    max-width: 1000px;
+    padding: 20px;
+    background-color: #1c1c3c; /* Dark purple */
+    text-align: left;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Header Styling */
+h1 {
+    font-size: 24px;
+    color: #ffffff; /* White text color */
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Search Bar Styling */
+.search-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.search-bar input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #556cd6; /* Light blue border */
+    border-radius: 5px;
+    background-color: #2e2e4d; /* Dark background for the input */
+    color: #ffffff; /* White text color for input */
+}
+
+/* Content Management Section */
+.content-section {
+    margin-top: 20px;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.content-header h2 {
+    color: #b0b6f5; /* Light blue for section title */
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.upload-btn {
+    background-color: #556cd6;
+    color: #ffffff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.upload-btn:hover {
+    background-color: #6c1fb0; /* Violet on hover */
+}
+
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.content-card {
+    background-color: #374785; /* Mid-tone blue */
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+    color: #ffffff;
+}
+
+.content-card h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.content-card p {
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+/* Analytics Section */
+.analytics-section {
+    margin-top: 20px;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.analytics-card {
+    background-color: #556cd6;
+    padding: 20px;
+    text-align: center;
+    border-radius: 5px;
+    color: #ffffff;
+}
+
+.analytics-card h4 {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.analytics-card p {
+    font-size: 14px;
+}
+
+/* Follower Section */
+.followers-section {
+    margin-top: 20px;
+}
+
+.follower-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.follower-card {
+    background-color: #2e2e4d; /* Dark background for follower cards */
+    padding: 15px;
+    text-align: center;
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+/* Hover and Focus Effects */
+button, input[type="text"] {
+    transition: all 0.3s ease;
+}
+
+button:hover, .upload-btn:hover {
+    background-color: #6c1fb0; /* Violet color on hover */
+    color: #ffffff;
+}
+
+input[type="text"]:focus {
+    border-color: #556cd6; /* Brighter blue on focus */
+    outline: none;
+}
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #ffffff;
+    border-top: 1px solid #d3d3d3;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0px -2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.nav-item {
+    text-decoration: none;
+    color: #333;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.nav-icon {
+    font-size: 24px;
+}
+
+.nav-item:hover {
+    color: #6c1fb0; /* Violet color on hover */
+}

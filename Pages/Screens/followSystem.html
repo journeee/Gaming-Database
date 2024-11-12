@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follow System</title>
+    <link rel="stylesheet" href="followsys.css"> <!-- Add your custom CSS file if needed -->
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
+    <script type="module" src="followSystem.js" defer></script> <!-- Your JavaScript file -->
+</head>
+<body>
+    <div class="container">
+        <!-- Back Button -->
+        <button id="back-button" class="back-button" onclick="window.location.href = document.referrer;" class="back-button">⬅ Back to Dashboard</button>
+          
+        <!-- Header -->
+        <h1>Follow System</h1>
+
+        <!-- Search for Content Creators -->
+        <div class="section">
+            <h2>Search for Content Creators</h2>
+            <input type="text" id="searchInput" placeholder="Search Content Creators">
+            <button onclick="searchCreators()">Search</button>
+        </div>
+
+        <!-- Follow Section -->
+        <div class="section">
+            <h2>Follow a Content Creator</h2>
+            <label for="creatorSelect">Select Content Creator:</label>
+            <select id="creatorSelect"></select>
+            <button onclick="follow()">Follow</button>
+        </div>
+
+
+       <script>
+        let currentUser = null;
+
+        // Check if the user is logged in
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                console.log(`Logged in as ${user.email}`);
+                document.getElementById('back-button').style.display = 'block'; // Show the back button
+            } else {
+                console.log("Not logged in");
+                // Redirect to login page if the user is not logged in
+                window.location.href = "login.html";
+            }
+        });
+
+        // Function to search for content creators
+        async function searchCreators() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const creatorsRef = db.collection('contentCreators');
+            const snapshot = await creatorsRef.get();
+            const creatorSelect = document.getElementById('creatorSelect');
+            creatorSelect.innerHTML = ''; // Clear the select options
+
+            snapshot.forEach(doc => {
+                const creatorData = doc.data();
+                if (creatorData.username.toLowerCase().includes(query)) {
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = creatorData.username;
+                    creatorSelect.appendChild(option);
+                }
+            });
+        }
+
+        // Function to follow a content creator
+        async function follow() {
+            const creatorId = document.getElementById('creatorSelect').value;
+
+            if (!creatorId || !currentUser) {
+                alert("Please select a creator and ensure you are signed in.");
+                return;
+            }
+
+            const userRef = db.collection('users').doc(currentUser.uid);
+            const creatorRef = db.collection('contentCreators').doc(creatorId);
+
+            const userDoc = await userRef.get();
+            const creatorDoc = await creatorRef.get();
+
+            if (!userDoc.exists || !creatorDoc.exists) {
+                alert("User or content creator not found.");
+                return;
+            }
+
+            const userData = userDoc.data();
+            const creatorData = creatorDoc.data();
+
+            // Add creator to user's followed list and user to creator's followers list
+            if (!userData.followedCreators.includes(creatorId)) {
+                userRef.update({
+                    followedCreators: [...userData.followedCreators, creatorId]
+                });
+
+                creatorRef.update({
+                    followers: [...creatorData.followers, currentUser.uid]
+                });
+
+                alert(`You are now following ${creatorData.username}`);
+            } else {
+                alert("You are already following this creator.");
+            }
+        }
+
+        // Function to show the following list of the signed-in user
+        async function showFollowing() {
+            if (!currentUser) return;
+
+            const userRef = db.collection('users').doc(currentUser.uid);
+            const userDoc = await userRef.get();
+
+            if (!userDoc.exists) {
+                alert("User data not found.");
+                return;
+            }
+
+            const userData = userDoc.data();
+            const followingList = userData.followedCreators;
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+
+            if (followingList.length > 0) {
+                const creatorsRef = db.collection('contentCreators');
+                const snapshot = await creatorsRef.where(firebase.firestore.FieldPath.documentId(), 'in', followingList).get();
+
+                snapshot.forEach(doc => {
+                    const creator = doc.data();
+                    const creatorDiv = document.createElement('div');
+                    creatorDiv.textContent = creator.username;
+                    output.appendChild(creatorDiv);
+                });
+            } else {
+                output.textContent = "You are not following any creators.";
+            }
+        }
+
+        // Function to show the followers of the signed-in user
+        async function showFollowers() {
+            if (!currentUser) return;
+
+            const userRef = db.collection('users').doc(currentUser.uid);
+            const userDoc = await userRef.get();
+
+            if (!userDoc.exists) {
+                alert("User data not found.");
+                return;
+            }
+
+            const userData = userDoc.data();
+            const output = document.getElementById('output');
+            output.innerHTML = '';
+
+            const followersList = userData.followers || [];
+
+            if (followersList.length > 0) {
+                const followers = await Promise.all(followersList.map(async (uid) => {
+                    const userSnap = await db.collection('users').doc(uid).get();
+                    return userSnap.exists ? userSnap.data().username : null;
+                }));
+
+                output.innerHTML = `Followers: ${followers.filter(Boolean).join(", ") || "No followers."}`;
+            } else {
+                output.innerHTML = "You have no followers.";
+            }
+        }
+    </script>
+</body>
+</html>
+
+        <!-- View Followers Section -->
+        <div class="section">
+            <h2>View Content Creator's Followers</h2>
+            <label for="creatorFollowersSelect">Select Content Creator:</label>
+            <select id="creatorFollowersSelect">
+                <option value="1">techguru</option>
+                <option value="2">gamingmaster</option>
+            </select>
+            <button onclick="showFollowers()">Show Followers</button>
+        </div>
+
+        <!-- Output Section -->
+        <div id="output"></div>
+    </div>
+
+    <script>
+        // Sample data for users and content creators
+        let users = [
+            { id: 1, username: 'john_doe', followedContentCreators: [] },
+            { id: 2, username: 'jane_smith', followedContentCreators: [] }
+        ];
+
+        let contentCreators = [
+            { id: 1, username: 'techguru', followers: [] },
+            { id: 2, username: 'gamingmaster', followers: [] }
+        ];
+
+        // Function to follow a content creator
+        function follow() {
+            const userId = parseInt(document.getElementById('userSelect').value);
+            const creatorId = parseInt(document.getElementById('creatorSelect').value);
+
+            const user = users.find(u => u.id === userId);
+            const creator = contentCreators.find(c => c.id === creatorId);
+
+            if (!user || !creator) {
+                alert("User or Content Creator not found.");
+                return;
+            }
+
+            if (!user.followedContentCreators.includes(creatorId)) {
+                user.followedContentCreators.push(creatorId);
+                creator.followers.push(userId);
+                alert(`${user.username} followed ${creator.username}`);
+            } else {
+                alert(`${user.username} is already following ${creator.username}`);
+            }
+        }
+
+        // Function to unfollow a content creator
+        function unfollow() {
+            const userId = parseInt(document.getElementById('userSelect').value);
+            const creatorId = parseInt(document.getElementById('creatorSelect').value);
+
+            const user = users.find(u => u.id === userId);
+            const creator = contentCreators.find(c => c.id === creatorId);
+
+            if (!user || !creator) {
+                alert("User or Content Creator not found.");
+                return;
+            }
+
+            const userIndex = user.followedContentCreators.indexOf(creatorId);
+            const creatorIndex = creator.followers.indexOf(userId);
+
+            if (userIndex !== -1 && creatorIndex !== -1) {
+                user.followedContentCreators.splice(userIndex, 1);
+                creator.followers.splice(creatorIndex, 1);
+                alert(`${user.username} unfollowed ${creator.username}`);
+            } else {
+                alert(`${user.username} is not following ${creator.username}`);
+            }
+        }
+
+        // Function to show the following list of a user
+        function showFollowing() {
+            const userId = parseInt(document.getElementById('userFollowingSelect').value);
+            const user = users.find(u => u.id === userId);
+
+            if (!user) {
+                alert("User not found.");
+                return;
+            }
+
+            const following = user.followedContentCreators.map(creatorId => {
+                const creator = contentCreators.find(c => c.id === creatorId);
+                return creator ? creator.username : null;
+            }).filter(Boolean);
+
+            document.getElementById('output').textContent = `${user.username} is following: ${following.join(", ") || "No one"}`;
+        }
+
+        // Function to show the followers of a content creator
+        function showFollowers() {
+            const creatorId = parseInt(document.getElementById('creatorFollowersSelect').value);
+            const creator = contentCreators.find(c => c.id === creatorId);
+
+            if (!creator) {
+                alert("Content Creator not found.");
+                return;
+            }
+
+            const followers = creator.followers.map(userId => {
+                const user = users.find(u => u.id === userId);
+                return user ? user.username : null;
+            }).filter(Boolean);
+
+            document.getElementById('output').textContent = `${creator.username} has followers: ${followers.join(", ") || "No followers"}`;
+        }
+    </script>
+</body>
+</html>

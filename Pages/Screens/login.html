@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Information App - Login</title>
+    <link rel="stylesheet" href="Findify_style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Login</h1>
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <div>
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe">Remember me?</label>
+            </div>
+            <button id="submit" type="submit">Submit</button>
+        </form>
+        <p id="error-message" style="color: red;"></p>
+        <p>Don't have an account? <a href="register.html" class="signup-link">Sign up</a></p>
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-linkedin"></i></a>
+            <a href="#"><i class="fab fa-whatsapp"></i></a>
+        </div>
+    </div>
+
+    <script type="module" src="login.js" defer></script>
+
+</body>
+
+
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regular User Dashboard</title>
+    <link rel="stylesheet" href="userdash.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
+    <script type="module" src="login.js" defer></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Back Button -->
+        <button id="back-button" class="back-button" onclick="window.location.href='login.html'">⬅ Sign Out</button>
+
+        <!-- Header -->
+        <h1>Hello <span id="username">User</span>,<br>Find Your Favorite Game or Connect with Friends</h1>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="game-search" placeholder="Search games or users">
+        </div>
+
+        <!-- Games Section -->
+        <div class="game-section">
+            <h2 class="section-title">Popular Games</h2>
+            <div class="game-grid">
+                <div class="game-card">Call of Duty</div>
+                <div class="game-card">Mortal Kombat</div>
+                <div class="game-card">Injustice</div>
+                <div class="game-card">Dragon Ball Z</div>
+                <div class="game-card">Street Fighter</div>
+                <div class="game-card">Bloody Roar Extreme</div>
+            </div>
+            <span class="more-games">More Games...</span>
+        </div>
+
+        <!-- Friends Favorite Section -->
+        <div class="friends-favorite">
+            <h2 class="section-title">Friends Favorite</h2>
+            <div class="game-grid">
+                <div class="game-card">Call of Duty</div>
+                <div class="game-card">Call of Duty</div>
+                <div class="game-card">Call of Duty</div>
+            </div>
+        </div>
+
+        <!-- New Games Section -->
+        <div class="new-section">
+            <h2 class="section-title">New</h2>
+            <div class="game-grid">
+                <div class="game-card">Call of Duty</div>
+                <div class="game-card">Call of Duty</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <a href="#home" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="#explore" class="nav-item">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-label">Explore</span>
+        </a>
+        <a href="followsystem.html" class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">Following</span>
+        </a>
+        
+        <a href="#settings" class="nav-item">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Settings</span>
+        </a>
+    </nav>
+
+    <script>
+        // Example variable for the username
+        const username = "User"; // Replace this with the actual username from your authentication
+        document.getElementById('username').textContent = username;
+
+        // User role (replace with actual user role retrieval logic)
+        let userRole = "regular"; // Example roles: "admin", "regular", "moderator"
+
+        // Set dashboard URL based on user role
+        function getDashboardUrl() {
+            switch (userRole) {
+                case "admin":
+                    return "admin_dashboard.html";
+                case "content creator":
+                    return "contentCreator_dashboard.html";
+                case "moderator":
+                    return "moderator_dashboard.html";
+                default:
+                    return "regularUser_dashboard.html";
+            }
+        }
+
+        // Redirect to the dashboard based on role
+        document.getElementById("back-button").addEventListener("click", () => {
+            window.location.href = getDashboardUrl();
+        });
+
+        // Search for games and users function
+        function searchGamesAndUsers() {
+            const searchTerm = document.getElementById('game-search').value.toLowerCase();
+
+            // Search for games
+            db.ref('games').orderByChild('title').once('value')
+                .then((snapshot) => {
+                    const games = snapshot.val();
+                    const gameListDiv = document.getElementById('game-list');
+                    gameListDiv.innerHTML = ''; // Clear previous list
+                    for (const gameId in games) {
+                        const game = games[gameId];
+                        if (game.title.toLowerCase().includes(searchTerm)) {
+                            gameListDiv.innerHTML += `<p>Game: ${game.title}, Genre: ${game.genre}</p>`;
+                        }
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error searching games:', error);
+                });
+
+            // Search for users
+            db.ref('users').orderByChild('username').once('value')
+                .then((snapshot) => {
+                    const users = snapshot.val();
+                    const gameListDiv = document.getElementById('game-list'); // Reusing game-list div for simplicity
+                    for (const userId in users) {
+                        const user = users[userId];
+                        if (user.username.toLowerCase().includes(searchTerm)) {
+                            gameListDiv.innerHTML += `<p>User: ${user.username}</p>`;
+                        }
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error searching users:', error);
+                });
+        }
+
+        document.getElementById('game-search').addEventListener('input', searchGamesAndUsers);
+    </script>
+    <script src="FirebaseAuth.js"></script>
+
+</body>
+
+</html>

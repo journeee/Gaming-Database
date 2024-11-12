@@ -1,0 +1,113 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    background-color: #ffffff;
+    border: 1px solid #d3d3d3;
+    border-radius: 10px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Form Styling */
+h1 {
+    font-size: 24px;
+    color: #6c1fb0; /* Violet */
+    margin-bottom: 20px;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #d3d3d3;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #333;
+    background-color: #f9f9ff; /* Light lilac */
+}
+
+input[type="checkbox"] {
+    margin-right: 50px;
+}
+
+label {
+    color: #6c1fb0;
+    font-size: 14px;
+    display: block;
+    margin-top: 10px;
+    text-align: left;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #8A2BE2; /* Violet */
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #6c1fb0;
+}
+
+#error-message {
+    color: red;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+/* Footer Links */
+.signup-link, .social-login {
+    font-size: 14px;
+    color: #87CEEB; /* Sky Blue */
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 20px;
+    display: inline-block;
+}
+
+.signup-link:hover {
+    color: #00BFFF;
+}
+
+.social-icons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.social-icons a {
+    color: #ffffff;
+    background-color: #6c1fb0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+    font-size: 18px;
+}
+
+.social-icons a:hover {
+    background-color: #8A2BE2; /* Violet */
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="creatordash.css"> <!-- Use the same styles.css file -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-firestore.js"></script>
+    <script type="module" src="FirebaseAuth.js" defer></script> <!-- Admin dashboard JavaScript -->
+</head>
+
+<body>
+    <div class="container">
+        <!-- Back Button -->
+        <button id="back-button" class="back-button" onclick="window.location.href='login.html'">⬅ Sign
+            Out</button>
+
+        <!-- Header -->
+        <h1>Admin Dashboard</h1>
+
+        <!-- Search Users Section -->
+        <div class="section">
+            <h2>Search Users</h2>
+            <input type="text" id="searchInput" placeholder="Search users by username or email">
+            <button onclick="searchUsers()">Search</button>
+        </div>
+
+        <!-- User List Section -->
+        <div class="section">
+            <h2>User List</h2>
+            <div id="userList"></div>
+        </div>
+    </div>
+
+    <script>
+
+        let currentUser = null;
+
+        // Check if the admin is logged in
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                console.log(`Admin logged in as ${user.email}`);
+            } else {
+                console.log("Admin not logged in");
+                window.location.href = "adminSignIn.html"; // Redirect to sign-in page if not logged in
+            }
+        });
+
+        // Function to search for users
+        async function searchUsers() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const usersRef = db.collection('users');
+            const snapshot = await usersRef.get();
+            const userListDiv = document.getElementById('userList');
+           // userListDiv.innerHTML = ''; // Clear the list before displaying
+
+            snapshot.forEach(doc => {
+                const userData = doc.data();
+                const username = userData.username.toLowerCase();
+                const email = userData.email.toLowerCase();
+
+                if (username.includes(query) || email.includes(query)) {
+                    const userDiv = document.createElement('div');
+                    userDiv.classList.add('user-card');
+                    userDiv.innerHTML = `
+                        <p><strong>Username:</strong> ${userData.username}</p>
+                        <p><strong>Email:</strong> ${userData.email}</p>
+                        <button onclick="viewUserDetails('${doc.id}')">View Details</button>
+                    `;
+                    userListDiv.appendChild(userDiv);
+                }
+            });
+        }
+
+        // Function to view user details
+        async function viewUserDetails(userId) {
+            const userRef = db.collection('users').doc(userId);
+            const userDoc = await userRef.get();
+
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                alert(`
+                    Username: ${userData.username}\n
+                    Email: ${userData.email}\n
+                    Followed Creators: ${userData.followedCreators.join(", ")}
+                `);
+            } else {
+                alert("User not found");
+            }
+        }
+    </script>
+    <script src="FirebaseAuth.js"></script>
+
+</body>
+
+</html>

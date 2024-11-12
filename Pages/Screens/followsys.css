@@ -1,0 +1,152 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    background-color: #ffffff;
+    border: 1px solid #d3d3d3;
+    border-radius: 10px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Header */
+h1 {
+    font-size: 24px;
+    color: #6c1fb0; /* Violet */
+    margin-bottom: 20px;
+}
+
+/* Section Titles */
+h2 {
+    font-size: 20px;
+    color: #6c1fb0; /* Violet */
+    margin-bottom: 15px;
+}
+
+/* Form Styling */
+label {
+    color: #6c1fb0;
+    font-size: 14px;
+    display: block;
+    margin-top: 10px;
+    text-align: left;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #d3d3d3;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #333;
+    background-color: #f9f9ff; /* Light lilac */
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #8A2BE2; /* Violet */
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 10px;
+}
+
+button:hover {
+    background-color: #6c1fb0;
+}
+
+/* Output Section */
+#output {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #333;
+    font-weight: bold;
+}
+
+/* Back Button */
+#back-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+}
+
+#back-button:hover {
+    background-color: #ddd;
+}
+
+/* Section Styles */
+.section {
+    margin-bottom: 30px;
+}
+
+/* Error Messages */
+#error-message {
+    color: red;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+/* Footer Links */
+.signup-link, .social-login {
+    font-size: 14px;
+    color: #87CEEB; /* Sky Blue */
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 20px;
+    display: inline-block;
+}
+
+.signup-link:hover {
+    color: #00BFFF;
+}
+
+.social-icons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.social-icons a {
+    color: #ffffff;
+    background-color: #6c1fb0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+    font-size: 18px;
+}
+
+.social-icons a:hover {
+    background-color: #8A2BE2; /* Violet */
+}

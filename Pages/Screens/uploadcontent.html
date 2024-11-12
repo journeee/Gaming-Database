@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Content - Content Creator Dashboard</title>
+    <link rel="stylesheet" href="creatordash.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Back Button -->
+        <button id="back-button" class="back-button" onclick="window.location.href='login.html'">⬅ Back to Dashboard</button> 
+
+        <h1>Upload New Content</h1>
+
+        <!-- Content Upload Form -->
+        <form class="upload-form" enctype="multipart/form-data" id="upload-form">
+            <!-- Content Title -->
+            <div class="form-group">
+                <label for="title">Content Title</label>
+                <input type="text" id="title" name="title" required placeholder="Enter title for your content">
+            </div>
+
+            <!-- Content Type -->
+            <div class="form-group">
+                <label for="content-type">Content Type</label>
+                <select id="content-type" name="content-type" required>
+                    <option value="">Select Content Type</option>
+                    <option value="video">Video</option>
+                    <option value="image">Image</option>
+                    <option value="document">Document</option>
+                    <option value="text">Text</option>
+                </select>
+            </div>
+
+            <!-- File Upload (conditional for video, image, document) -->
+            <div class="form-group file-upload" id="file-upload-section" style="display: none;">
+                <label for="file">Upload File</label>
+                <input type="file" id="file" name="file" accept="video/*, image/*, .pdf, .doc, .docx">
+                <p class="hint">Supported formats: Video, Image, PDF, DOC, DOCX</p>
+            </div>
+
+            <!-- Text Content (only shows for text content type) -->
+            <div class="form-group text-content" id="text-content-section" style="display: none;">
+                <label for="text-content">Text Content</label>
+                <textarea id="text-content" name="text-content" rows="5" placeholder="Write your text content here..."></textarea>
+            </div>
+
+            <!-- Content Description -->
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="3" placeholder="Describe your content"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="upload-btn">Upload Content</button>
+        </form>
+
+        <!-- Your Content Section -->
+        <h2>Your Content</h2>
+        <div id="your-content">
+            <!-- Dynamically populated content will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // Set user role - this should be replaced with the actual user role retrieval logic
+        let userRole = "creator"; // Example roles: "creator", "admin", "regular"
+
+        // Function to get the dashboard URL based on user role
+        function getDashboardUrl() {
+            switch (userRole) {
+                case "admin":
+                    return "admin_dashboard.html";
+                case "creator":
+                    return "contentCreatorDashboard.html";
+                case "moderator":
+                    return "moderator_dashboard.html";
+                default:
+                    return "regularUser_dashboard.html";
+            }
+        }
+
+        // Redirect to the appropriate dashboard when back button is clicked
+        document.getElementById("back-button").addEventListener("click", () => {
+            window.location.href = getDashboardUrl();
+        });
+
+        // JavaScript to toggle visibility based on selected content type
+        document.getElementById("content-type").addEventListener("change", function () {
+            const fileUploadSection = document.getElementById("file-upload-section");
+            const textContentSection = document.getElementById("text-content-section");
+            const contentType = this.value;
+
+            if (contentType === "video" || contentType === "image" || contentType === "document") {
+                fileUploadSection.style.display = "block";
+                textContentSection.style.display = "none";
+            } else if (contentType === "text") {
+                textContentSection.style.display = "block";
+                fileUploadSection.style.display = "none";
+            } else {
+                fileUploadSection.style.display = "none";
+                textContentSection.style.display = "none";
+            }
+        });
+
+        // Handle form submission to upload content
+        document.getElementById("upload-form").addEventListener("submit", async function (event) {
+            event.preventDefault(); // Prevent page refresh on form submit
+
+            const formData = new FormData(this);
+            const contentTitle = document.getElementById("title").value;
+            const contentType = document.getElementById("content-type").value;
+            const description = document.getElementById("description").value;
+
+            const contentData = {
+                title: contentTitle,
+                content_type: contentType,
+                description: description,
+                upload_date: new Date().toISOString(),
+                is_premium: false,  // Adjust based on user's selection or logic
+                user_id: "/Users/1fPm4uW9fiLVxSB1aWBG",  // Hardcoded for now, replace with actual user ID
+            };
+
+            // Simulate an API call to upload content to the database
+            // You can use an actual backend API (like Firebase or your custom server) to store content
+            const newContent = await uploadContentToDatabase(contentData, formData);
+
+            // Once the content is uploaded, display it in the "Your Content" section
+            displayContent(newContent);
+        });
+
+        // Simulate uploading content to a database
+        async function uploadContentToDatabase(contentData, formData) {
+            // Simulate a database entry (for demonstration purposes)
+            const contentId = "102"; // Example content ID
+            contentData.content_id = contentId;
+
+            // Simulate successful upload to the DB and return the content entry
+            return new Promise(resolve => {
+                setTimeout(() => resolve(contentData), 1000); // Simulating a delay
+            });
+        }
+
+        // Function to display uploaded content
+        function displayContent(content) {
+            const contentContainer = document.getElementById("your-content");
+
+            const contentElement = document.createElement("div");
+            contentElement.classList.add("content-item");
+
+            contentElement.innerHTML = `
+                <h3>${content.title}</h3>
+                <p><strong>Type:</strong> ${content.content_type}</p>
+                <p><strong>Description:</strong> ${content.description}</p>
+                <p><strong>Upload Date:</strong> ${new Date(content.upload_date).toLocaleString()}</p>
+                <p><strong>Premium:</strong> ${content.is_premium ? "Yes" : "No"}</p>
+            `;
+
+            contentContainer.appendChild(contentElement);
+        }
+    </script>
+
+    <script type="module" src="FirebaseAuth.js" defer></script>
+
+</body>
+
+</html>

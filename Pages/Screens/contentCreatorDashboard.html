@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Creator Dashboard</title>
+    <link rel="stylesheet" href="creatordash.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Welcome, [Creator's Name]</h1>
+            <!-- Back Button -->
+            <button id="back-button" class="back-button" onclick="window.location.href='login.html'">⬅ Sign   Out</button>
+
+    
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" placeholder="Search...">
+        </div>
+
+        <!-- Content Management Section -->
+        <div class="content-section">
+            <div class="content-header">
+                <h2>Your Content</h2>
+                <a href="uploadcontent.html" class="upload-btn">Upload New Content</a>
+            </div>
+            <div class="content-grid" id="content-grid">
+                <!-- Recent uploads will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div class="analytics-section">
+            <h2>Analytics</h2>
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h4>Total Views</h4>
+                    <p>1,234</p>
+                </div>
+                <div class="analytics-card">
+                    <h4>Total Followers</h4>
+                    <p>567</p>
+                </div>
+                <div class="analytics-card">
+                    <h4>Likes</h4>
+                    <p>891</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Followers Section -->
+        <div class="followers-section">
+            <h2>Recent Followers</h2>
+            <div class="follower-grid">
+                <div class="follower-card">Follower 1</div>
+                <div class="follower-card">Follower 2</div>
+                <div class="follower-card">Follower 3</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item"><span class="nav-icon">🏠</span>Home</a>
+        <a href="#" class="nav-item"><span class="nav-icon">📈</span>Analytics</a>
+        <a href="#" class="nav-item"><span class="nav-icon">📁</span>Content</a>
+        <a href="followsystem.html" class="nav-item"><span class="nav-icon">👥</span>Followers</a>
+        <a href="" class="nav-item"><span class="nav-icon">⚙️</span>Settings</a>
+    </div>
+
+    <script>
+        // Function to fetch uploaded content from Firestore
+        async function fetchContent() {
+            const contentGrid = document.getElementById("content-grid");
+            contentGrid.innerHTML = ""; // Clear any existing content
+
+            try {
+                const contentCollection = await db.collection("content").get();
+                contentCollection.forEach(doc => {
+                    const contentData = doc.data();
+                    const contentElement = document.createElement("div");
+                    contentElement.classList.add("content-item");
+
+                    contentElement.innerHTML = `
+                        <h3>${contentData.title}</h3>
+                        <p><strong>Type:</strong> ${contentData.content_type}</p>
+                        <p><strong>Description:</strong> ${contentData.description}</p>
+                        <p><strong>Upload Date:</strong> ${new Date(contentData.upload_date.seconds * 1000).toLocaleString()}</p>
+                        <p><strong>Premium:</strong> ${contentData.is_premium ? "Yes" : "No"}</p>
+                        <a href="viewcontent.html?content_id=${doc.id}" class="view-content-btn">View Content</a>
+                    `;
+
+                    contentGrid.appendChild(contentElement);
+                });
+            } catch (error) {
+                console.error("Error fetching content: ", error);
+            }
+        }
+
+        // Call fetchContent() when the page loads
+        window.onload = fetchContent;
+
+        // Function to display uploaded content in the "Your Content" section
+        function displayContent() {
+            const contentGrid = document.getElementById("content-grid");
+            contentGrid.innerHTML = ""; // Clear any existing content
+
+            uploadedContent.forEach(content => {
+                const contentElement = document.createElement("div");
+                contentElement.classList.add("content-item");
+
+                contentElement.innerHTML = `
+                    <h3>${content.title}</h3>
+                    <p><strong>Type:</strong> ${content.content_type}</p>
+                    <p><strong>Description:</strong> ${content.description}</p>
+                    <p><strong>Upload Date:</strong> ${new Date(content.upload_date).toLocaleString()}</p>
+                    <p><strong>Premium:</strong> ${content.is_premium ? "Yes" : "No"}</p>
+                    <a href="viewcontent.html?content_id=${content.content_id}" class="view-content-btn">View Content</a>
+                `;
+
+                contentGrid.appendChild(contentElement);
+            });
+        }
+
+        // Call the function to display the content when the page loads
+        window.onload = displayContent;
+
+    </script>
+
+    <script src="FirebaseAuth.js"></script>
+</body>
+
+</html>

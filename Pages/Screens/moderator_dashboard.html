@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moderator Dashboard</title>
+  <link rel="stylesheet" href="Findify_style.css">
+
+  <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-database.js"></script>
+  <script type="module" src="login.js" defer></script>
+
+</head>
+<body>
+<h2>Moderator Dashboard</h2>
+<button onclick="reviewContent()">Review Content</button>
+<div id="content-list"></div>
+<div class="container">
+  <!-- Back Button -->
+  <button id="back-button" class="back-button">⬅ Sign Out</button>
+
+<script>
+  // Review content function for Moderator
+  function reviewContent() {
+    db.ref('content').once('value')
+            .then((snapshot) => {
+              const contentItems = snapshot.val();
+              const contentListDiv = document.getElementById('content-list');
+              contentListDiv.innerHTML = ''; // Clear previous list
+              for (const contentId in contentItems) {
+                const content = contentItems[contentId];
+                contentListDiv.innerHTML += `
+                            <p>Content: ${content.text}</p>
+                            <button onclick="approveContent('${contentId}')">Approve</button>
+                            <button onclick="flagContent('${contentId}')">Flag</button>
+                        `;
+              }
+            })
+            .catch((error) => {
+              console.error('Error reviewing content:', error);
+            });
+  }
+
+  function approveContent(contentId) {
+    db.ref('content/' + contentId).update({ status: 'approved' });
+    alert('Content approved');
+    reviewContent(); // Refresh list
+  }
+
+  function flagContent(contentId) {
+    db.ref('content/' + contentId).update({ status: 'flagged' });
+    alert('Content flagged');
+    reviewContent(); // Refresh list
+  }
+
+  // Log out function
+  function logOut() {
+    auth.signOut().then(() => {
+      window.location.href = 'index.html';
+    }).catch((error) => {
+      console.error('Error logging out:', error);
+    });
+  }
+</script>
+<script src="FirebaseAuth.js"></script>
+</body>
+</html>
+

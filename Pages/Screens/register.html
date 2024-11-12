@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Information App - Register</title>
+    <link rel="stylesheet" href="Findify_style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Register</h1>
+        <form id="registerForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+            <div>
+                <label for="role">Select Role:</label>
+                <select id="role" required>
+                    <option value="Regular User">Regular User</option>
+                    <option value="Moderator">Moderator</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Content Creator">Content Creator</option>
+                </select>
+            </div>
+            <button id="submit" type="submit">Submit</button>
+        </form>
+        <p id="error-message" style="color: red;"></p>
+        <p>Already have an account? <a href="login.html" class="signup-link">Login</a></p>
+
+        <!-- Add a button that redirects to the login page -->
+        <button onclick="window.location.href='login.html';">Log in</button>
+    </div>
+
+    <script type="module" src="register.js" defer></script>
+</body>
+
+</html>
