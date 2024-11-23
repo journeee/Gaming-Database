@@ -6,25 +6,34 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 
 @SpringBootApplication
 public class GsDatabaseApplication {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         SpringApplication.run(GsDatabaseApplication.class, args);
 
-        ClassLoader loader = GsDatabaseApplication.class.getClassLoader();
-        File file = new File(loader.getResource("serviceAccountKey.json").getFile());
-        FileInputStream serviceAccount = new FileInputStream(file.getAbsolutePath());
+        try {
+            // Load the service account key from the resources folder
+            InputStream serviceAccount = GsDatabaseApplication.class.getClassLoader().getResourceAsStream("serviceAccountKey.json");
 
-        FirebaseOptions options = new FirebaseOptions.Builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .build();
+            if (serviceAccount == null) {
+                throw new IllegalStateException("Service account key file not found in resources folder.");
+            }
 
-        if (FirebaseApp.getApps().isEmpty()) {
-            FirebaseApp.initializeApp(options);
+            // Initialize Firebase with project-specific details
+            FirebaseOptions options = new FirebaseOptions.Builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setDatabaseUrl("https://gaming-database-2a402.firebaseio.com") // Your project-specific Realtime Database URL
+                    .build();
+
+            if (FirebaseApp.getApps().isEmpty()) {
+                FirebaseApp.initializeApp(options);
+                System.out.println("Firebase for 'Gaming Database' initialized successfully.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error initializing Firebase: " + e.getMessage());
         }
     }
 }

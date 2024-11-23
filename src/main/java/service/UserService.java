@@ -1,11 +1,11 @@
 package service;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.*;
-import com.google.firebase.cloud.FirestoreClient;
-import lombok.extern.java.Log;
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 import models.User;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,35 +13,46 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @Service
-public class UserService {
-    private Firestore db = FirestoreClient.getFirestore();
+public class UserService extends BaseService<User> {
 
-    //used to log information in the console while testing
-    private final Log logger = (Log) LogFactory.getLog(this.getClass());
+    @Override
+    public User getById(String id) throws ExecutionException, InterruptedException {
+        DocumentSnapshot snapshot = firestore.collection("users").document(id).get().get();
+        return snapshot.exists() ? snapshot.toObject(User.class) : null;
+    }
 
+    @Override
+    public void save(User user) throws ExecutionException, InterruptedException {
+        firestore.collection("users").document(user.getUserId()).set(user).get();
+    }
 
-    public ArrayList<User> getUsers() throws ExecutionException, InterruptedException {
+    public void activateDeactivateUser(String userId, boolean activate) throws ExecutionException, InterruptedException {
+        firestore.collection("users").document(userId).update("isActive", activate).get();
+    }
 
+    public void deleteById(String userId) throws ExecutionException, InterruptedException {
+        firestore.collection("users").document(userId).delete().get();
+    }
 
-        Query query = db.collection("User");
-        ApiFuture<QuerySnapshot> future = query.get();
-        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-
-        ArrayList<User> users = documents.size() > 0 ? new ArrayList<>() : null;
-        for(QueryDocumentSnapshot doc : documents)
-        {
-            users.add(doc.toObject(User.class));
+    public List<User> getAllUsers() throws ExecutionException, InterruptedException {
+        CollectionReference userCollection = firestore.collection("users");
+        ApiFuture<QuerySnapshot> future = userCollection.get();
+        List<User> users = new ArrayList<>();
+        for (DocumentSnapshot document : future.get().getDocuments()) {
+            User user = document.toObject(User.class);
+            if (user != null) {
+                users.add(user);
+            }
         }
-
         return users;
     }
 
-    public User getUser(String userId) throws ExecutionException, InterruptedException {
-        User user = null;
+    public String createUser(User user) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = firestore.collection("users").add(user).get();
+        return docRef.getId();
+    }
 
-        DocumentReference doc = db.collection("User").document(userId);
-        ApiFuture<DocumentSnapshot> future = doc.get();
-        user = future.get().toObject(User.class);
-
-        return user;
-    }}
+    public void updateUser(String userId, User user) throws ExecutionException, InterruptedException {
+        firestore.collection("users").document(userId).set(user).get();
+    }
+}
