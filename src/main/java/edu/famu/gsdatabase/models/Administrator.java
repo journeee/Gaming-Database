@@ -1,11 +1,11 @@
 package edu.famu.gsdatabase.models;
 
-public class Administrator extends User {
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    public Administrator() {
-        super();
-    }
-
+@Data
+@NoArgsConstructor
+public class Administrator extends BaseUser {
     public Administrator(String userId, String username, String email, boolean isActive, String password) {
         super(userId, username, email, isActive, password);
     }

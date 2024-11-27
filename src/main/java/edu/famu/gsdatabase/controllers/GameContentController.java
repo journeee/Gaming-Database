@@ -2,6 +2,7 @@ package edu.famu.gsdatabase.controllers;
 
 import edu.famu.gsdatabase.models.GameContent;
 import edu.famu.gsdatabase.service.GameContentService;
+import edu.famu.gsdatabase.service.UserService;
 import edu.famu.gsdatabase.util.ApiResponseFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,10 +34,8 @@ public class GameContentController {
      * @return A response indicating the success or failure of the operation.
      */
     @PostMapping("/")
-    public ResponseEntity<ApiResponseFormat<String>> postContent(
-            @RequestHeader("Role") String role,
-            @RequestBody GameContent content
-    ) {
+    public ResponseEntity<ApiResponseFormat<String>> postContent(@RequestHeader("Role") String role,
+                                                                 @RequestBody GameContent content) {
         if (!isContentCreator(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponseFormat<>(false, "Access denied: Only Content Creators can post content", null, null));
@@ -80,10 +79,8 @@ public class GameContentController {
      * @return A response indicating the success or failure of the operation.
      */
     @PostMapping("/{contentId}/bookmark")
-    public ResponseEntity<ApiResponseFormat<String>> bookmarkContent(
-            @RequestHeader("UserId") String userId,
-            @PathVariable String contentId
-    ) {
+    public ResponseEntity<ApiResponseFormat<String>> bookmarkContent(@RequestHeader("UserId") String userId,
+                                                                     @PathVariable String contentId) {
         try {
             String bookmarkId = gameContentService.bookmarkContent(userId, contentId);
             return ResponseEntity.ok(new ApiResponseFormat<>(true, "Content bookmarked successfully", bookmarkId, null));
@@ -93,3 +90,4 @@ public class GameContentController {
         }
     }
 }
+

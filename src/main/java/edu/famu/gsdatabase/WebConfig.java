@@ -1,4 +1,4 @@
-package edu.famu.gsdatabase.util;
+package edu.famu.gsdatabase;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

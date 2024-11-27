@@ -1,6 +1,6 @@
 package edu.famu.gsdatabase.controllers;
 
-import edu.famu.gsdatabase.dto.LoginRequest;
+import edu.famu.gsdatabase.models.BaseUser;
 import edu.famu.gsdatabase.models.User;
 import edu.famu.gsdatabase.service.UserService;
 import jakarta.validation.Valid;
@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,13 +25,14 @@ public class AuthController {
     /**
      * Endpoint for signing in a user.
      *
-     * @param loginRequest The login request containing identifier and password.
+     * @param identifier The username or email of the user.
+     * @param password   The password of the user.
      * @return A response indicating success or failure.
      */
     @PostMapping("/signin")
-    public ResponseEntity<?> signIn(@RequestBody @Valid LoginRequest loginRequest) {
+    public ResponseEntity<?> signIn(@RequestParam String identifier, @RequestParam String password) {
         try {
-            User user = userService.authenticateByIdentifier(loginRequest.getIdentifier(), loginRequest.getPassword());
+            BaseUser user = userService.authenticateByIdentifier(identifier, password);
             if (user != null) {
                 // Include the role and token in the response
                 return ResponseEntity.ok(new ApiResponse(true, "Sign-in successful", Map.of(
@@ -65,9 +67,28 @@ public class AuthController {
 
             userService.createUser(user);
             return ResponseEntity.ok(new ApiResponse(true, "Registration successful for user: " + user.getUsername()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse(false, "Error during registration: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Endpoint to promote a user to admin (Admin functionality).
+     *
+     * @param userId The ID of the user to promote.
+     * @return A response indicating success or failure.
+     */
+    @PatchMapping("/promote/{userId}")
+    public ResponseEntity<?> promoteUser(@PathVariable String userId) {
+        try {
+            userService.promoteToAdmin(userId);
+            return ResponseEntity.ok(new ApiResponse(true, "User promoted to Admin successfully"));
+        } catch (ExecutionException | InterruptedException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(false, "Error promoting user to Admin: " + e.getMessage()));
         }
     }
 
@@ -76,8 +97,8 @@ public class AuthController {
      */
     @Getter
     public static class ApiResponse {
-        private boolean success;
-        private String message;
+        private final boolean success;
+        private final String message;
         private Object data;
 
         public ApiResponse(boolean success, String message) {
@@ -90,6 +111,5 @@ public class AuthController {
             this.message = message;
             this.data = data;
         }
-
     }
 }

@@ -1,12 +1,12 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Login from './src/pages/Login';
-import Register from './src/pages/Register';
-import AdminDashboard from './src/pages/AdminDashboard';
-import ModeratorDashboard from './src/pages/ModeratorDashboard';
-import RegularUserDashboard from './src/pages/RegularUserDashboard';
-import ContentCreatorDashboard from './src/pages/ContentCreatorDashboard';
-import ProtectedRoute from './src/Components/ProtectedRoute';
+import Login from './Frontend/pages/Login';
+import Register from './Frontend/pages/Register';
+import AdminDashboard from './Frontend/pages/AdminDashboard';
+import ModeratorDashboard from './Frontend/pages/ModeratorDashboard';
+import RegularUserDashboard from './Frontend/pages/RegularUserDashboard';
+import ContentCreatorDashboard from './Frontend/pages/ContentCreatorDashboard';
+import ProtectedRoute from '../src/Components/ProtectedRoute';
 
 const App = () => {
     return (

@@ -1,14 +1,15 @@
 package edu.famu.gsdatabase.controllers;
 
-
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequestMapping("/api/test")
 public class TestController {
 
-    @GetMapping("/test")
-    public String testEndpoint() {
-        return "Test endpoint works!";
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello, World!";
     }
 }

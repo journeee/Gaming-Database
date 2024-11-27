@@ -1,5 +1,6 @@
 package edu.famu.gsdatabase.controllers;
 
+import edu.famu.gsdatabase.models.BaseUser;
 import edu.famu.gsdatabase.models.User;
 import edu.famu.gsdatabase.service.UserService;
 import edu.famu.gsdatabase.util.ApiResponseFormat;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -39,7 +41,7 @@ public class UserController {
         }
 
         try {
-            List<User> users = userService.getAllUsers();
+            List<BaseUser> users = userService.getAllUsers();
             if (users.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT)
                         .body(new ApiResponseFormat<>(true, "No users found", null, null));
@@ -60,7 +62,7 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponseFormat<User>> getUserById(@PathVariable String userId) {
         try {
-            User user = userService.getById(userId);
+            BaseUser user = userService.getById(userId);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new ApiResponseFormat<>(false, "User not found", null, null));

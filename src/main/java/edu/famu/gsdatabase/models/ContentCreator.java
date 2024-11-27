@@ -1,11 +1,12 @@
 package edu.famu.gsdatabase.models;
 
-public class ContentCreator extends User {
 
-    public ContentCreator() {
-        super();
-    }
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@NoArgsConstructor
+public class ContentCreator extends BaseUser {
     public ContentCreator(String userId, String username, String email, boolean isActive, String password) {
         super(userId, username, email, isActive, password);
     }

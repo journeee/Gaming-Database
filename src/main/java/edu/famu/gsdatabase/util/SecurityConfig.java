@@ -10,12 +10,12 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain FilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable) // Disable CSRF for development
                 .cors(cors -> {}) // Enable CORS with defaults (configured separately in CorsConfig)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Public endpoints
+                        .requestMatchers("/api/**").permitAll() // Public endpoints
                         .anyRequest().authenticated() // All other endpoints require authentication
                 );
 

@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import edu.famu.gsdatabase.models.*;
+import jakarta.validation.Valid;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,9 +28,9 @@ public class UserService {
      *
      * @param identifier The username or email of the user.
      * @param password   The password of the user.
-     * @return The authenticated User object, or null if authentication fails.
+     * @return The authenticated BaseUser object, or null if authentication fails.
      */
-    public User authenticateByIdentifier(String identifier, String password) throws ExecutionException, InterruptedException {
+    public BaseUser authenticateByIdentifier(String identifier, String password) throws ExecutionException, InterruptedException {
         if (identifier == null || password == null) {
             throw new IllegalArgumentException("Identifier or password cannot be null");
         }
@@ -51,7 +52,7 @@ public class UserService {
         }
 
         DocumentSnapshot document = documents.get(0);
-        User user = resolveUserByRole(document.getString("role"), document);
+        BaseUser user = resolveUserByRole(document.getString("role"), document);
 
         // Verify the password
         if (user != null && passwordEncoder.matches(password, user.getPassword())) {
@@ -61,14 +62,13 @@ public class UserService {
         return null; // Authentication failed
     }
 
-
     /**
      * Create a new user.
      *
      * @param user The user object to create.
      * @return The ID of the newly created user.
      */
-    public String createUser(User user) throws ExecutionException, InterruptedException {
+    public String createUser(@Valid BaseUser user) throws ExecutionException, InterruptedException {
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
@@ -79,15 +79,13 @@ public class UserService {
         return user.getUsername();
     }
 
-
-
     /**
      * Update an existing user's information.
      *
      * @param userId The ID of the user to update.
      * @param user   The updated user object.
      */
-    public void updateUser(String userId, User user) throws ExecutionException, InterruptedException {
+    public void updateUser(String userId, BaseUser user) throws ExecutionException, InterruptedException {
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             // Hash the new password before updating
             String hashedPassword = passwordEncoder.encode(user.getPassword());
@@ -108,17 +106,57 @@ public class UserService {
     }
 
     /**
+     * Get all inactive users.
+     *
+     * @return List of all inactive users.
+     */
+    public List<BaseUser> getInactiveUsers() throws ExecutionException, InterruptedException {
+        List<BaseUser> inactiveUsers = new ArrayList<>();
+        List<QueryDocumentSnapshot> documents = firestore.collection("users").whereEqualTo("isActive", false).get().get().getDocuments();
+
+        for (QueryDocumentSnapshot document : documents) {
+            String role = document.getString("role");
+            BaseUser user = resolveUserByRole(role, document);
+            if (user != null) {
+                inactiveUsers.add(user);
+            }
+        }
+
+        return inactiveUsers;
+    }
+
+    /**
+     * Flag a user for review.
+     *
+     * @param userId The ID of the user to flag.
+     * @return A message indicating the user has been flagged.
+     */
+    public String flagUser(String userId) throws ExecutionException, InterruptedException {
+        firestore.collection("users").document(userId).update("flagged", true).get();
+        return "User flagged successfully";
+    }
+
+    /**
+     * Promote a user to Admin.
+     *
+     * @param userId The ID of the user to promote.
+     */
+    public void promoteToAdmin(String userId) throws ExecutionException, InterruptedException {
+        firestore.collection("users").document(userId).update("role", "Admin").get();
+    }
+
+    /**
      * Get all users from Firestore, resolving them to their specific subclasses.
      *
      * @return List of all users.
      */
-    public List<User> getAllUsers() throws ExecutionException, InterruptedException {
-        List<User> users = new ArrayList<>();
+    public List<BaseUser> getAllUsers() throws ExecutionException, InterruptedException {
+        List<BaseUser> users = new ArrayList<>();
         List<QueryDocumentSnapshot> documents = firestore.collection("users").get().get().getDocuments();
 
         for (QueryDocumentSnapshot document : documents) {
             String role = document.getString("role");
-            User user = resolveUserByRole(role, document);
+            BaseUser user = resolveUserByRole(role, document);
             if (user != null) {
                 users.add(user);
             }
@@ -131,9 +169,9 @@ public class UserService {
      * Get a user by their ID, resolving them to their specific subclass.
      *
      * @param userId The user ID.
-     * @return The User object or null if not found.
+     * @return The BaseUser object or null if not found.
      */
-    public User getById(String userId) throws ExecutionException, InterruptedException {
+    public BaseUser getById(String userId) throws ExecutionException, InterruptedException {
         DocumentSnapshot snapshot = firestore.collection("users").document(userId).get().get();
         if (!snapshot.exists()) return null;
 
@@ -155,14 +193,14 @@ public class UserService {
      *
      * @param role     The role of the user.
      * @param snapshot The Firestore snapshot containing user data.
-     * @return A specific subclass of User, or null if the role is unrecognized.
+     * @return A specific subclass of BaseUser, or null if the role is unrecognized.
      */
-    private User resolveUserByRole(String role, DocumentSnapshot snapshot) {
+    private BaseUser resolveUserByRole(String role, DocumentSnapshot snapshot) {
         return switch (role) {
             case "Admin" -> snapshot.toObject(Administrator.class);
             case "Moderator" -> snapshot.toObject(Moderator.class);
-            case "Content Creator" -> snapshot.toObject(ContentCreator.class);
-            case "Regular User" -> snapshot.toObject(RegularUser.class);
+            case "ContentCreator" -> snapshot.toObject(ContentCreator.class);
+            case "RegularUser" -> snapshot.toObject(RegularUser.class);
             default -> null; // Handle unknown role gracefully
         };
     }

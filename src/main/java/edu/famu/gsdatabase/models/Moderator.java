@@ -1,11 +1,11 @@
 package edu.famu.gsdatabase.models;
 
-public class Moderator extends User {
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    public Moderator() {
-        super();
-    }
-
+@Data
+@NoArgsConstructor
+public class Moderator extends BaseUser {
     public Moderator(String userId, String username, String email, boolean isActive, String password) {
         super(userId, username, email, isActive, password);
     }
