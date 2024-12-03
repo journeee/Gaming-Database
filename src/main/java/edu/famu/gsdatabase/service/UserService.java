@@ -4,23 +4,51 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import edu.famu.gsdatabase.models.*;
-import jakarta.validation.Valid;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Logger;
 
 @Service
 public class UserService {
 
     private final Firestore firestore;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final SCryptPasswordEncoder passwordEncoder;
+    private static final Logger LOGGER = Logger.getLogger(UserService.class.getName());
 
     public UserService() {
         this.firestore = FirestoreClient.getFirestore();
-        this.passwordEncoder = new BCryptPasswordEncoder(); // Initialize BCryptPasswordEncoder
+        this.passwordEncoder = new SCryptPasswordEncoder(16384, 8, 1, 32, 64); // Match Firestore SCrypt settings
+    }
+    /**
+     * Finds a user by their identifier (username or email).
+     *
+     * @param identifier The username or email of the user.
+     * @return The BaseUser object or null if not found.
+     */
+    private BaseUser findUserByIdentifier(String identifier) throws ExecutionException, InterruptedException {
+        CollectionReference usersCollection = firestore.collection("users");
+
+        // Query Firestore for the user with the provided identifier
+        ApiFuture<QuerySnapshot> query = usersCollection.whereEqualTo("username", identifier).get();
+        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+
+        if (documents.isEmpty()) {
+            LOGGER.info("No user found by username, trying email.");
+            query = usersCollection.whereEqualTo("email", identifier).get();
+            documents = query.get().getDocuments();
+
+            if (documents.isEmpty()) {
+                LOGGER.warning("User not found with identifier: " + identifier);
+                return null; // User not found
+            }
+        }
+
+        DocumentSnapshot document = documents.get(0);
+        return resolveUserByRole(document.getString("role"), document);
     }
 
     /**
@@ -31,35 +59,27 @@ public class UserService {
      * @return The authenticated BaseUser object, or null if authentication fails.
      */
     public BaseUser authenticateByIdentifier(String identifier, String password) throws ExecutionException, InterruptedException {
-        if (identifier == null || password == null) {
-            throw new IllegalArgumentException("Identifier or password cannot be null");
+        validateInput(identifier, password);
+
+        identifier = identifier.toLowerCase(); // Normalize identifier to lowercase
+        LOGGER.info("Authentication attempt for identifier: " + identifier);
+
+        BaseUser user = findUserByIdentifier(identifier);
+        if (user == null) {
+            LOGGER.warning("User not found with identifier: " + identifier);
+            return null;
         }
 
-        CollectionReference usersCollection = firestore.collection("users");
-
-        // Query Firestore for the user with the provided identifier
-        ApiFuture<QuerySnapshot> query = usersCollection.whereEqualTo("username", identifier).get();
-        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
-
-        if (documents.isEmpty()) {
-            // Try querying for email if no username match
-            query = usersCollection.whereEqualTo("email", identifier).get();
-            documents = query.get().getDocuments();
-
-            if (documents.isEmpty()) {
-                return null; // User not found
-            }
+        LOGGER.info("Attempting to verify password for user: " + user.getUsername());
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            LOGGER.info("Authentication successful for user: " + user.getUsername());
+            return user;
+        } else {
+            LOGGER.warning("Password mismatch for user: " + user.getUsername());
         }
 
-        DocumentSnapshot document = documents.get(0);
-        BaseUser user = resolveUserByRole(document.getString("role"), document);
-
-        // Verify the password
-        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
-            return user; // Authentication successful
-        }
-
-        return null; // Authentication failed
+        LOGGER.warning("Authentication failed for identifier: " + identifier);
+        return null;
     }
 
     /**
@@ -68,14 +88,13 @@ public class UserService {
      * @param user The user object to create.
      * @return The ID of the newly created user.
      */
-    public String createUser(@Valid BaseUser user) throws ExecutionException, InterruptedException {
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            throw new IllegalArgumentException("Password is required");
-        }
+    public String createUser(BaseUser user) throws ExecutionException, InterruptedException {
+        validateUser(user);
+        LOGGER.info("Creating user with username: " + user.getUsername());
 
-        user.setPassword(passwordEncoder.encode(user.getPassword())); // Hash the password
-        DocumentReference docRef = firestore.collection("users").document(user.getUsername());
-        docRef.set(user).get();
+        setUserIdentifier(user);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        writeToFirestore(user.getUsername(), user);
         return user.getUsername();
     }
 
@@ -86,13 +105,11 @@ public class UserService {
      * @param user   The updated user object.
      */
     public void updateUser(String userId, BaseUser user) throws ExecutionException, InterruptedException {
+        LOGGER.info("Updating user with ID: " + userId);
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            // Hash the new password before updating
-            String hashedPassword = passwordEncoder.encode(user.getPassword());
-            user.setPassword(hashedPassword);
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-
-        firestore.collection("users").document(userId).set(user, SetOptions.merge()).get();
+        writeToFirestore(userId, user);
     }
 
     /**
@@ -102,7 +119,7 @@ public class UserService {
      * @param isActive True to activate, false to deactivate.
      */
     public void activateDeactivateUser(String userId, boolean isActive) throws ExecutionException, InterruptedException {
-        firestore.collection("users").document(userId).update("isActive", isActive).get();
+        updateField(userId, "isActive", isActive);
     }
 
     /**
@@ -111,18 +128,7 @@ public class UserService {
      * @return List of all inactive users.
      */
     public List<BaseUser> getInactiveUsers() throws ExecutionException, InterruptedException {
-        List<BaseUser> inactiveUsers = new ArrayList<>();
-        List<QueryDocumentSnapshot> documents = firestore.collection("users").whereEqualTo("isActive", false).get().get().getDocuments();
-
-        for (QueryDocumentSnapshot document : documents) {
-            String role = document.getString("role");
-            BaseUser user = resolveUserByRole(role, document);
-            if (user != null) {
-                inactiveUsers.add(user);
-            }
-        }
-
-        return inactiveUsers;
+        return getUsersByField("isActive", false);
     }
 
     /**
@@ -132,7 +138,7 @@ public class UserService {
      * @return A message indicating the user has been flagged.
      */
     public String flagUser(String userId) throws ExecutionException, InterruptedException {
-        firestore.collection("users").document(userId).update("flagged", true).get();
+        updateField(userId, "flagged", true);
         return "User flagged successfully";
     }
 
@@ -142,7 +148,7 @@ public class UserService {
      * @param userId The ID of the user to promote.
      */
     public void promoteToAdmin(String userId) throws ExecutionException, InterruptedException {
-        firestore.collection("users").document(userId).update("role", "Admin").get();
+        updateField(userId, "role", "Admin");
     }
 
     /**
@@ -151,17 +157,18 @@ public class UserService {
      * @return List of all users.
      */
     public List<BaseUser> getAllUsers() throws ExecutionException, InterruptedException {
+        LOGGER.info("Fetching all users.");
         List<BaseUser> users = new ArrayList<>();
         List<QueryDocumentSnapshot> documents = firestore.collection("users").get().get().getDocuments();
 
         for (QueryDocumentSnapshot document : documents) {
-            String role = document.getString("role");
-            BaseUser user = resolveUserByRole(role, document);
+            BaseUser user = resolveUserByRole(document.getString("role"), document);
             if (user != null) {
                 users.add(user);
             }
         }
 
+        LOGGER.info("Total users found: " + users.size());
         return users;
     }
 
@@ -172,11 +179,13 @@ public class UserService {
      * @return The BaseUser object or null if not found.
      */
     public BaseUser getById(String userId) throws ExecutionException, InterruptedException {
+        LOGGER.info("Fetching user by ID: " + userId);
         DocumentSnapshot snapshot = firestore.collection("users").document(userId).get().get();
-        if (!snapshot.exists()) return null;
-
-        String role = snapshot.getString("role");
-        return resolveUserByRole(role, snapshot);
+        if (!snapshot.exists()) {
+            LOGGER.warning("User not found with ID: " + userId);
+            return null;
+        }
+        return resolveUserByRole(snapshot.getString("role"), snapshot);
     }
 
     /**
@@ -185,7 +194,9 @@ public class UserService {
      * @param userId The ID of the user to delete.
      */
     public void deleteById(String userId) throws ExecutionException, InterruptedException {
-        firestore.collection("users").document(userId).delete().get();
+        LOGGER.info("Deleting user with ID: " + userId);
+        ApiFuture<WriteResult> result = firestore.collection("users").document(userId).delete();
+        LOGGER.info("User deleted: " + userId + ". Update time: " + result.get().getUpdateTime());
     }
 
     /**
@@ -196,12 +207,87 @@ public class UserService {
      * @return A specific subclass of BaseUser, or null if the role is unrecognized.
      */
     private BaseUser resolveUserByRole(String role, DocumentSnapshot snapshot) {
+        if (role == null) {
+            LOGGER.warning("Role is null for document: " + snapshot.getId());
+            return null;
+        }
+
+        LOGGER.info("Resolving user role: " + role + " for document: " + snapshot.getId());
         return switch (role) {
             case "Admin" -> snapshot.toObject(Administrator.class);
             case "Moderator" -> snapshot.toObject(Moderator.class);
             case "ContentCreator" -> snapshot.toObject(ContentCreator.class);
             case "RegularUser" -> snapshot.toObject(RegularUser.class);
-            default -> null; // Handle unknown role gracefully
+            default -> {
+                LOGGER.warning("Unknown role: " + role + " for document: " + snapshot.getId());
+                yield null;
+            }
         };
+    }
+
+    /**
+     * Validates input parameters.
+     */
+    private void validateInput(String identifier, String password) {
+        if (identifier == null || password == null) {
+            LOGGER.warning("Identifier or password cannot be null");
+            throw new IllegalArgumentException("Identifier or password cannot be null");
+        }
+    }
+
+    /**
+     * Validates user object.
+     */
+    private void validateUser(BaseUser user) {
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            LOGGER.warning("Password is required but was not provided for user: " + user.getUsername());
+            throw new IllegalArgumentException("Password is required");
+        }
+    }
+
+    /**
+     * Sets the identifier for a user if it is not already set.
+     */
+    private void setUserIdentifier(BaseUser user) {
+        if (user.getIdentifier() == null || user.getIdentifier().isEmpty()) {
+            user.setIdentifier(user.getUsername() != null ? user.getUsername().toLowerCase() : user.getEmail().toLowerCase());
+        }
+    }
+
+    /**
+     * Writes a user to Firestore.
+     */
+    private void writeToFirestore(String userId, BaseUser user) throws ExecutionException, InterruptedException {
+        DocumentReference docRef = firestore.collection("users").document(userId);
+        ApiFuture<WriteResult> result = docRef.set(user, SetOptions.merge());
+        LOGGER.info("User write request sent for user: " + userId + ". Update time: " + result.get().getUpdateTime());
+    }
+
+    /**
+     * Updates a specific field in Firestore.
+     */
+    private void updateField(String userId, String field, Object value) throws ExecutionException, InterruptedException {
+        LOGGER.info("Updating field " + field + " for user with ID: " + userId);
+        ApiFuture<WriteResult> result = firestore.collection("users").document(userId).update(field, value);
+        LOGGER.info("Field " + field + " updated for user: " + userId + ". Update time: " + result.get().getUpdateTime());
+    }
+
+    /**
+     * Gets users by a specific field value.
+     */
+    private List<BaseUser> getUsersByField(String field, Object value) throws ExecutionException, InterruptedException {
+        LOGGER.info("Fetching users by field: " + field + " with value: " + value);
+        List<BaseUser> users = new ArrayList<>();
+        List<QueryDocumentSnapshot> documents = firestore.collection("users").whereEqualTo(field, value).get().get().getDocuments();
+
+        for (QueryDocumentSnapshot document : documents) {
+            BaseUser user = resolveUserByRole(document.getString("role"), document);
+            if (user != null) {
+                users.add(user);
+            }
+        }
+
+        LOGGER.info("Total users found with " + field + " = " + value + ": " + users.size());
+        return users;
     }
 }

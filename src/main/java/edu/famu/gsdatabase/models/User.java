@@ -14,9 +14,9 @@ public class User extends BaseUser {
     private List<GameContent> savedGames;
     private List<Bookmark> savedBookmarks;
 
-    public User(String userId, String username, String email, boolean isActive, String password,
+    public User(String userId, String username, String email, boolean isActive, String identifier, String password,
                     List<GameContent> savedGames, List<Bookmark> savedBookmarks) {
-        super(userId, username, email, isActive, password);
+        super(userId, username, email, isActive, password, identifier);
         this.savedGames = savedGames;
         this.savedBookmarks = savedBookmarks;
     }

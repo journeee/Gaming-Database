@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class ContentCreator extends BaseUser {
-    public ContentCreator(String userId, String username, String email, boolean isActive, String password) {
-        super(userId, username, email, isActive, password);
+    public ContentCreator(String userId, String username, String email, boolean isActive, String password,String identifier) {
+        super(userId, username, email, isActive, password, identifier);
     }
 
     @Override

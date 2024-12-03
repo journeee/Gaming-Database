@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class Moderator extends BaseUser {
-    public Moderator(String userId, String username, String email, boolean isActive, String password) {
-        super(userId, username, email, isActive, password);
+    public Moderator(String userId, String username, String email, boolean isActive, String identifier, String password) {
+        super(userId, username, email, isActive, password, identifier);
     }
 
     @Override

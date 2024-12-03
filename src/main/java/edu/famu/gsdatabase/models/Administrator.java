@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class Administrator extends BaseUser {
-    public Administrator(String userId, String username, String email, boolean isActive, String password) {
-        super(userId, username, email, isActive, password);
+    public Administrator(String userId, String username, String email, boolean isActive, String password, String identifier) {
+        super(userId, username, email, isActive, password, identifier);
     }
 
     @Override

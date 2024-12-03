@@ -13,9 +13,9 @@ class RestUser extends BaseUser {
     private List<DocumentReference> savedGames;
     private List<DocumentReference> savedBookmarks;
 
-    public RestUser(String userId, String username, String email, boolean isActive, String password,
+    public RestUser(String userId, String username, String email, boolean isActive, String password,String identifier,
                         List<DocumentReference> savedGames, List<DocumentReference> savedBookmarks) {
-        super(userId, username, email, isActive, password);
+        super(userId, username, email, isActive, password, identifier);
         this.savedGames = savedGames;
         this.savedBookmarks = savedBookmarks;
     }
