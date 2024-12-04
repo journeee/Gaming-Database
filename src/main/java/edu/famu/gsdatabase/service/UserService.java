@@ -4,7 +4,6 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import edu.famu.gsdatabase.models.*;
-import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,39 +15,10 @@ import java.util.logging.Logger;
 public class UserService {
 
     private final Firestore firestore;
-    private final SCryptPasswordEncoder passwordEncoder;
     private static final Logger LOGGER = Logger.getLogger(UserService.class.getName());
 
     public UserService() {
         this.firestore = FirestoreClient.getFirestore();
-        this.passwordEncoder = new SCryptPasswordEncoder(16384, 8, 1, 32, 64); // Match Firestore SCrypt settings
-    }
-    /**
-     * Finds a user by their identifier (username or email).
-     *
-     * @param identifier The username or email of the user.
-     * @return The BaseUser object or null if not found.
-     */
-    private BaseUser findUserByIdentifier(String identifier) throws ExecutionException, InterruptedException {
-        CollectionReference usersCollection = firestore.collection("users");
-
-        // Query Firestore for the user with the provided identifier
-        ApiFuture<QuerySnapshot> query = usersCollection.whereEqualTo("username", identifier).get();
-        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
-
-        if (documents.isEmpty()) {
-            LOGGER.info("No user found by username, trying email.");
-            query = usersCollection.whereEqualTo("email", identifier).get();
-            documents = query.get().getDocuments();
-
-            if (documents.isEmpty()) {
-                LOGGER.warning("User not found with identifier: " + identifier);
-                return null; // User not found
-            }
-        }
-
-        DocumentSnapshot document = documents.get(0);
-        return resolveUserByRole(document.getString("role"), document);
     }
 
     /**
@@ -60,7 +30,6 @@ public class UserService {
      */
     public BaseUser authenticateByIdentifier(String identifier, String password) throws ExecutionException, InterruptedException {
         validateInput(identifier, password);
-
         identifier = identifier.toLowerCase(); // Normalize identifier to lowercase
         LOGGER.info("Authentication attempt for identifier: " + identifier);
 
@@ -71,7 +40,8 @@ public class UserService {
         }
 
         LOGGER.info("Attempting to verify password for user: " + user.getUsername());
-        if (passwordEncoder.matches(password, user.getPassword())) {
+        // Direct password comparison
+        if (password.equals(user.getPassword())) {
             LOGGER.info("Authentication successful for user: " + user.getUsername());
             return user;
         } else {
@@ -93,7 +63,7 @@ public class UserService {
         LOGGER.info("Creating user with username: " + user.getUsername());
 
         setUserIdentifier(user);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Save password as plain text (not recommended for production)
         writeToFirestore(user.getUsername(), user);
         return user.getUsername();
     }
@@ -107,7 +77,7 @@ public class UserService {
     public void updateUser(String userId, BaseUser user) throws ExecutionException, InterruptedException {
         LOGGER.info("Updating user with ID: " + userId);
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            user.setPassword(user.getPassword());
         }
         writeToFirestore(userId, user);
     }
@@ -197,6 +167,34 @@ public class UserService {
         LOGGER.info("Deleting user with ID: " + userId);
         ApiFuture<WriteResult> result = firestore.collection("users").document(userId).delete();
         LOGGER.info("User deleted: " + userId + ". Update time: " + result.get().getUpdateTime());
+    }
+
+    /**
+     * Finds a user by their identifier (username or email).
+     *
+     * @param identifier The username or email of the user.
+     * @return The BaseUser object or null if not found.
+     */
+    private BaseUser findUserByIdentifier(String identifier) throws ExecutionException, InterruptedException {
+        CollectionReference usersCollection = firestore.collection("users");
+
+        // Query Firestore for the user with the provided identifier
+        ApiFuture<QuerySnapshot> query = usersCollection.whereEqualTo("username", identifier).get();
+        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+
+        if (documents.isEmpty()) {
+            LOGGER.info("No user found by username, trying email.");
+            query = usersCollection.whereEqualTo("email", identifier).get();
+            documents = query.get().getDocuments();
+
+            if (documents.isEmpty()) {
+                LOGGER.warning("User not found with identifier: " + identifier);
+                return null; // User not found
+            }
+        }
+
+        DocumentSnapshot document = documents.get(0);
+        return resolveUserByRole(document.getString("role"), document);
     }
 
     /**

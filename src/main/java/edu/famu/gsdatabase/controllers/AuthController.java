@@ -1,14 +1,18 @@
 package edu.famu.gsdatabase.controllers;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.UserRecord;
 import edu.famu.gsdatabase.models.BaseUser;
 import edu.famu.gsdatabase.service.UserService;
 import jakarta.validation.Valid;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -29,60 +33,55 @@ public class AuthController {
     /**
      * Endpoint for signing in a user.
      *
-     * @param identifier The username or email of the user.
-     * @param password   The password of the user.
      * @return A response indicating success or failure.
      */
+
     @PostMapping("/signin")
-    public ResponseEntity<?> signIn(@RequestParam String identifier, @RequestParam String password) {
+    public ResponseEntity<?> signIn(@RequestParam String email, @RequestParam String password) {
         try {
-            LOGGER.info("Sign-in attempt with identifier: " + identifier);
+            LOGGER.info("Sign-in attempt with email: " + email);
 
-            if (identifier == null || identifier.isEmpty()) {
-                LOGGER.warning("Identifier is null or empty.");
-                return ResponseEntity.badRequest().body(new ApiResponse(false, "Identifier must not be null or empty."));
+            // Use Firebase Authentication REST API to authenticate
+            RestTemplate restTemplate = new RestTemplate();
+            String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCMb_cDXh1FSMVHaw8nTOCkqVvyRK_MVHw";
+
+            // Create the request body
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("email", email);
+            requestBody.put("password", password);
+            requestBody.put("returnSecureToken", true);
+
+            // Set headers for the request
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // Make the request
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+
+            // Extract the ID token
+            String idToken = (String) response.getBody().get("idToken");
+
+            // Verify ID token using Firebase Admin SDK
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+            String uid = decodedToken.getUid();
+
+            // Fetch the user from Firestore or database using the UID
+            BaseUser user = userService.getById(uid);
+            if (user != null) {
+                return ResponseEntity.ok(new ApiResponse(true, "User authenticated successfully", user));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse(false, "User not found", null));
             }
 
-            if (password == null || password.isEmpty()) {
-                LOGGER.warning("Password is null or empty.");
-                return ResponseEntity.badRequest().body(new ApiResponse(false, "Password must not be null or empty."));
-            }
-
-            // Normalize identifier to ensure case-insensitive matching
-            identifier = identifier.toLowerCase();
-
-            BaseUser user = userService.authenticateByIdentifier(identifier, password);
-            if (user == null) {
-                LOGGER.warning("User not found with identifier: " + identifier);
-                return ResponseEntity.badRequest().body(new ApiResponse(false, "Invalid identifier or password"));
-            }
-
-            LOGGER.info("Sign-in successful for user: " + user.getUsername() + " with role: " + user.getRole());
-
-            // Include the role, token, and dashboard URL in the response
-            String dashboardUrl = getDashboardUrl(user);
-            return ResponseEntity.ok(new ApiResponse(true, "Sign-in successful", Map.of(
-                    "role", user.getClass().getSimpleName(),
-                    "username", user.getUsername(),
-                    "token", generateJwtToken(user),
-                    "dashboardUrl", dashboardUrl
-            )));
-        } catch (IllegalArgumentException e) {
-            LOGGER.severe("Illegal argument exception during sign-in: " + e.getMessage());
-            return ResponseEntity.badRequest().body(new ApiResponse(false, e.getMessage()));
         } catch (Exception e) {
-            LOGGER.severe("Unexpected error during sign-in: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponse(false, "Error during sign-in: " + e.getMessage()));
+            LOGGER.warning("Authentication failed for email: " + email + ". Reason: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "Invalid email/password or authentication failed", null));
         }
     }
 
-    /**
-     * Endpoint for registering a new user.
-     *
-     * @param user The user object containing the registration details.
-     * @return A response indicating success or failure.
-     */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody BaseUser user) {
         try {
@@ -100,17 +99,25 @@ public class AuthController {
                 LOGGER.info("Role not provided. Defaulting to RegularUser for user: " + user.getUsername());
             }
 
-            // Set userId if not provided (e.g., using UUID)
-            if (user.getUserId() == null || user.getUserId().isEmpty()) {
-                user.setUserId(java.util.UUID.randomUUID().toString());
-                LOGGER.info("Generated userId for user: " + user.getUsername() + " - userId: " + user.getUserId());
-            }
-
             // Normalize identifier to lowercase for consistency
-            user.setIdentifier(user.getUsername() != null ? user.getUsername().toLowerCase() : user.getEmail().toLowerCase());
+            String email = user.getEmail().toLowerCase();
+            String password = user.getPassword();
 
-            // Hash the password before storing it
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+
+            // Create a user in Firebase Authentication
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                    .setEmail(email)
+                    .setPassword(password)
+                    .setDisplayName(user.getUsername());
+
+            UserRecord userRecord = auth.createUser(request);
+
+            // Set Firebase userId as userId in your system
+            user.setUserId(userRecord.getUid());
+            user.setIdentifier(email);
+
+            // Create the user in your Firestore collection
             userService.createUser(user);
             LOGGER.info("Registration successful for user: " + user.getUsername() + " with role: " + user.getRole());
 
