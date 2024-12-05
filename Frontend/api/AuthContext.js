@@ -1,29 +1,28 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from './axiosConfig';
+import axios from '../utils/axiosConfig';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUser = async () => {
+            setLoading(true);
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
                     const response = await axios.get('/auth/me');
                     setUser(response.data);
-                } catch (err) {
-                    console.error('Error fetching user data:', err);
+                } catch (error) {
+                    console.error('Failed to fetch user:', error);
                     localStorage.removeItem('authToken');
-                    setUser(null);
                 }
             }
             setLoading(false);
         };
+
         fetchUser();
     }, []);
 
@@ -32,16 +31,14 @@ export const AuthProvider = ({ children }) => {
             const response = await axios.post('/auth/signin', credentials);
             localStorage.setItem('authToken', response.data.token);
             setUser(response.data.user);
-            navigate(`/${response.data.user.role.toLowerCase()}`);
-        } catch (err) {
-            throw new Error('Login failed');
+        } catch (error) {
+            throw new Error('Failed to login.');
         }
     };
 
     const logout = () => {
         localStorage.removeItem('authToken');
         setUser(null);
-        navigate('/');
     };
 
     return (

@@ -1,57 +1,85 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from '../context/AuthContext';
-import SignIn from '../components/Auth/SignIn';
-import Register from '../components/Auth/Register';
-import AdminDashboard from '../components/Admin/AdminDashboard';
-import UserDashboard from '../components/User/UserDashboard';
-import CreatorDashboard from '../components/ContentCreator/CreatorDashboard';
-import ModeratorDashboard from '../components/Moderator/ModeratorDashboard';
+import React, { useContext } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import AdminDashboard from '../../src/pages/AdminDashboard';
+import ModeratorDashboard from '../../src/pages/ModeratorDashboard';
+import ContentCreatorDashboard from '../../src/pages/ContentCreatorDashboard';
+import UserDashboard from '../../src/pages/UserDashboard';
+import Login from '../../src/pages/Login';
+import Register from '../../src/pages/Register';
 import PrivateRoute from './PrivateRoute';
+import { AuthContext } from './AuthContext';
 
-function AppRoutes() {
+const AppRoutes = () => {
+    const { user } = useContext(AuthContext);
+
+    const getDashboardForRole = () => {
+        if (!user) return <Navigate to="/login" />;
+        switch (user.role) {
+            case 'Admin':
+                return <Navigate to="/admin-dashboard" />;
+            case 'Moderator':
+                return <Navigate to="/moderator-dashboard" />;
+            case 'ContentCreator':
+                return <Navigate to="/content-creator-dashboard" />;
+            case 'RegularUser':
+                return <Navigate to="/user-dashboard" />;
+            default:
+                return <Navigate to="/login" />;
+        }
+    };
+
     return (
         <Router>
-            <AuthProvider>
-                <Routes>
-                    <Route path="/" element={<SignIn />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route
-                        path="/admin"
-                        element={
-                            <PrivateRoute role="Admin">
-                                <AdminDashboard />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/user"
-                        element={
-                            <PrivateRoute role="User">
-                                <UserDashboard />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/creator"
-                        element={
-                            <PrivateRoute role="ContentCreator">
-                                <CreatorDashboard />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/moderator"
-                        element={
-                            <PrivateRoute role="Moderator">
-                                <ModeratorDashboard />
-                            </PrivateRoute>
-                        }
-                    />
-                </Routes>
-            </AuthProvider>
+            <Routes>
+                {/* Redirect Home to respective dashboards */}
+                <Route path="/" element={getDashboardForRole()} />
+
+                {/* Admin Routes */}
+                <Route
+                    path="/admin-dashboard"
+                    element={
+                        <PrivateRoute role="Admin">
+                            <AdminDashboard />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* Moderator Routes */}
+                <Route
+                    path="/moderator-dashboard"
+                    element={
+                        <PrivateRoute role="Moderator">
+                            <ModeratorDashboard />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* Content Creator Routes */}
+                <Route
+                    path="/content-creator-dashboard"
+                    element={
+                        <PrivateRoute role="ContentCreator">
+                            <ContentCreatorDashboard />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* Regular User Routes */}
+                <Route
+                    path="/user-dashboard"
+                    element={
+                        <PrivateRoute role="RegularUser">
+                            <UserDashboard />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* Authentication Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+            </Routes>
         </Router>
     );
-}
+};
 
 export default AppRoutes;
