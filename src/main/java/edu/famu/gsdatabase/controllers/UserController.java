@@ -1,5 +1,7 @@
 package edu.famu.gsdatabase.controllers;
 
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.firebase.auth.FirebaseAuthException;
 import edu.famu.gsdatabase.models.BaseUser;
 import edu.famu.gsdatabase.models.User;
 import edu.famu.gsdatabase.service.UserService;
@@ -41,7 +43,7 @@ public class UserController {
         }
 
         try {
-            List<BaseUser> users = userService.getAllUsers();
+            List<QueryDocumentSnapshot> users = userService.getAllUsers();
             if (users.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT)
                         .body(new ApiResponseFormat<>(true, "No users found", null, null));
@@ -62,7 +64,7 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponseFormat<User>> getUserById(@PathVariable String userId) {
         try {
-            BaseUser user = userService.getById(userId);
+            BaseUser user = userService.getUserById(userId);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new ApiResponseFormat<>(false, "User not found", null, null));
@@ -80,13 +82,12 @@ public class UserController {
      * @param user The user object to create.
      * @return The ID of the newly created user or an error message.
      */
-    @PostMapping("/")
-    public ResponseEntity<ApiResponseFormat<String>> createUser(@RequestBody User user) {
+    public ResponseEntity<ApiResponseFormat<String>> createUser(@RequestBody BaseUser user) {
         try {
             String userId = userService.createUser(user);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponseFormat<>(true, "User created successfully", userId, null));
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | InterruptedException | FirebaseAuthException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseFormat<>(false, "Error creating user", null, e.getMessage()));
         }
@@ -111,7 +112,7 @@ public class UserController {
         try {
             userService.updateUser(userId, user);
             return ResponseEntity.ok(new ApiResponseFormat<>(true, "User updated successfully", null, null));
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | InterruptedException | FirebaseAuthException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseFormat<>(false, "Error updating user", null, e.getMessage()));
         }
@@ -141,6 +142,18 @@ public class UserController {
                     .body(new ApiResponseFormat<>(false, "Error updating user status", null, e.getMessage()));
         }
     }
+    // Endpoint to flag or unflag a user
+    @PostMapping("/{userId}/flag")
+    public ResponseEntity<ApiResponseFormat<String>> flagUser(@PathVariable String userId, @RequestParam boolean flagged) {
+        try {
+            userService.flagUser(userId, flagged);
+            String message = flagged ? "User flagged successfully" : "User unflagged successfully";
+            return ResponseEntity.ok(new ApiResponseFormat<>(true, message, userId, null));
+        } catch (ExecutionException | InterruptedException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponseFormat<>(false, "Error flagging user", null, e.getMessage()));
+        }
+    }
 
     /**
      * Delete a user (Admin functionality).
@@ -157,11 +170,13 @@ public class UserController {
         }
 
         try {
-            userService.deleteById(userId);
+            userService.deleteUser(userId);
             return ResponseEntity.ok(new ApiResponseFormat<>(true, "User deleted successfully", null, null));
         } catch (ExecutionException | InterruptedException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseFormat<>(false, "Error deleting user", null, e.getMessage()));
+        } catch (FirebaseAuthException e) {
+            throw new RuntimeException(e);
         }
     }
 }

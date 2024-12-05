@@ -2,6 +2,7 @@ package edu.famu.gsdatabase.models;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.firebase.auth.UserRecord;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -45,6 +46,14 @@ public abstract class BaseUser {
         this.identifier = identifier;
     }
 
-
+    public String getusername() {
+        return this.username;  // Assuming `userName` is defined in `BaseUser`
+    }
+    public UserRecord.CreateRequest toFirebaseUser() {
+        return new UserRecord.CreateRequest()
+                .setEmail(this.getEmail())
+                .setPassword(this.getPassword())
+                .setDisplayName(this.getusername());
+    }
     public abstract void performRoleSpecificTask();
 }

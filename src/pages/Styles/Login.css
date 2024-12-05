@@ -26,7 +26,7 @@ body {
     width: 100px;
     height: 100px;
     margin: 0 auto 20px auto;
-    background-image: url(/Users/journeeh/Downloads/Gaming-Database-main/Frontend/images/logo.jpeg); /* Adjust path to your logo */
+    background-image: url(/src/pages/Styles/logo.jpeg); /* Adjust path to your logo */
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;

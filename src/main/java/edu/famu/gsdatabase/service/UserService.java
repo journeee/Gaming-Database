@@ -2,11 +2,13 @@ package edu.famu.gsdatabase.service;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
 import com.google.firebase.cloud.FirestoreClient;
 import edu.famu.gsdatabase.models.*;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -22,270 +24,187 @@ public class UserService {
     }
 
     /**
-     * Authenticate a user by identifier (username or email) and password.
+     * Create a new user in the Firestore database.
      *
-     * @param identifier The username or email of the user.
-     * @param password   The password of the user.
-     * @return The authenticated BaseUser object, or null if authentication fails.
-     */
-    public BaseUser authenticateByIdentifier(String identifier, String password) throws ExecutionException, InterruptedException {
-        validateInput(identifier, password);
-        identifier = identifier.toLowerCase(); // Normalize identifier to lowercase
-        LOGGER.info("Authentication attempt for identifier: " + identifier);
-
-        BaseUser user = findUserByIdentifier(identifier);
-        if (user == null) {
-            LOGGER.warning("User not found with identifier: " + identifier);
-            return null;
-        }
-
-        LOGGER.info("Attempting to verify password for user: " + user.getUsername());
-        // Direct password comparison
-        if (password.equals(user.getPassword())) {
-            LOGGER.info("Authentication successful for user: " + user.getUsername());
-            return user;
-        } else {
-            LOGGER.warning("Password mismatch for user: " + user.getUsername());
-        }
-
-        LOGGER.warning("Authentication failed for identifier: " + identifier);
-        return null;
-    }
-
-    /**
-     * Create a new user.
-     *
-     * @param user The user object to create.
+     * @param user The user to create.
      * @return The ID of the newly created user.
      */
-    public String createUser(BaseUser user) throws ExecutionException, InterruptedException {
-        validateUser(user);
-        LOGGER.info("Creating user with username: " + user.getUsername());
+    public String createUser(BaseUser user) throws ExecutionException, InterruptedException, FirebaseAuthException {
+        LOGGER.info("Creating user with email: " + user.getEmail());
 
-        setUserIdentifier(user);
-        // Save password as plain text (not recommended for production)
-        writeToFirestore(user.getUsername(), user);
-        return user.getUsername();
+        // Create user in Firebase Authentication
+        String userId = FirebaseAuth.getInstance().createUser(new UserRecord.CreateRequest()
+                .setEmail(user.getEmail())
+                .setPassword(user.getPassword())
+                .setDisplayName(user.getusername())
+        ).getUid();
+
+        user.setUserId(userId);
+
+        // Save user to Firestore
+        ApiFuture<WriteResult> future = firestore.collection("users").document(userId).set(user);
+        future.get();  // wait for Firestore to complete write
+
+        LOGGER.info("User created successfully with ID: " + userId);
+        return userId;
     }
-
     /**
-     * Update an existing user's information.
-     *
-     * @param userId The ID of the user to update.
-     * @param user   The updated user object.
-     */
-    public void updateUser(String userId, BaseUser user) throws ExecutionException, InterruptedException {
-        LOGGER.info("Updating user with ID: " + userId);
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            user.setPassword(user.getPassword());
-        }
-        writeToFirestore(userId, user);
-    }
-
-    /**
-     * Activate or deactivate a user.
-     *
-     * @param userId  The ID of the user to update.
-     * @param isActive True to activate, false to deactivate.
-     */
-    public void activateDeactivateUser(String userId, boolean isActive) throws ExecutionException, InterruptedException {
-        updateField(userId, "isActive", isActive);
-    }
-
-    /**
-     * Get all inactive users.
-     *
-     * @return List of all inactive users.
-     */
-    public List<BaseUser> getInactiveUsers() throws ExecutionException, InterruptedException {
-        return getUsersByField("isActive", false);
-    }
-
-    /**
-     * Flag a user for review.
-     *
-     * @param userId The ID of the user to flag.
-     * @return A message indicating the user has been flagged.
-     */
-    public String flagUser(String userId) throws ExecutionException, InterruptedException {
-        updateField(userId, "flagged", true);
-        return "User flagged successfully";
-    }
-
-    /**
-     * Promote a user to Admin.
-     *
-     * @param userId The ID of the user to promote.
-     */
-    public void promoteToAdmin(String userId) throws ExecutionException, InterruptedException {
-        updateField(userId, "role", "Admin");
-    }
-
-    /**
-     * Get all users from Firestore, resolving them to their specific subclasses.
-     *
-     * @return List of all users.
-     */
-    public List<BaseUser> getAllUsers() throws ExecutionException, InterruptedException {
-        LOGGER.info("Fetching all users.");
-        List<BaseUser> users = new ArrayList<>();
-        List<QueryDocumentSnapshot> documents = firestore.collection("users").get().get().getDocuments();
-
-        for (QueryDocumentSnapshot document : documents) {
-            BaseUser user = resolveUserByRole(document.getString("role"), document);
-            if (user != null) {
-                users.add(user);
-            }
-        }
-
-        LOGGER.info("Total users found: " + users.size());
-        return users;
-    }
-
-    /**
-     * Get a user by their ID, resolving them to their specific subclass.
+     * Fetch a user by their ID.
      *
      * @param userId The user ID.
      * @return The BaseUser object or null if not found.
      */
-    public BaseUser getById(String userId) throws ExecutionException, InterruptedException {
-        LOGGER.info("Fetching user by ID: " + userId);
+    public BaseUser getUserById(String userId) throws ExecutionException, InterruptedException {
         DocumentSnapshot snapshot = firestore.collection("users").document(userId).get().get();
         if (!snapshot.exists()) {
-            LOGGER.warning("User not found with ID: " + userId);
-            return null;
+            throw new RuntimeException("User record not found in Firestore");
         }
-        return resolveUserByRole(snapshot.getString("role"), snapshot);
+
+        // Get the role field to determine the type of user to deserialize
+        String role = snapshot.getString("role");
+        if (role == null) {
+            throw new RuntimeException("Role not found for user with ID: " + userId);
+        }
+
+        BaseUser user;
+        switch (role) {
+            case "Admin":
+                user = snapshot.toObject(Administrator.class);
+                break;
+            case "Moderator":
+                user = snapshot.toObject(Moderator.class);
+                break;
+            case "ContentCreator":
+                user = snapshot.toObject(ContentCreator.class);
+                break;
+            default:
+                user = snapshot.toObject(User.class);
+                break;
+        }
+
+        if (user == null) {
+            throw new RuntimeException("Failed to deserialize user with ID: " + userId);
+        }
+
+        return user;
+    }
+
+    /**
+     * Fetch all users in the Firestore database.
+     *
+     * @return List of BaseUser objects.
+     */
+    public List<QueryDocumentSnapshot> getAllUsers() throws ExecutionException, InterruptedException {
+        LOGGER.info("Fetching all users");
+
+        CollectionReference usersCollection = firestore.collection("users");
+        ApiFuture<QuerySnapshot> query = usersCollection.get();
+        return query.get().getDocuments();
+    }
+
+    /**
+     * Update the user information.
+     *
+     * @param userId    The user's ID.
+     * @param updatedUser The updated user information.
+     */
+    public void updateUser(String userId, BaseUser updatedUser) throws ExecutionException, InterruptedException, FirebaseAuthException {
+        LOGGER.info("Updating user with ID: " + userId);
+
+        // Update user in Firebase Authentication if necessary
+        UserRecord.UpdateRequest request = new UserRecord.UpdateRequest(userId)
+                .setEmail(updatedUser.getEmail())
+                .setDisplayName(updatedUser.getusername());
+        FirebaseAuth.getInstance().updateUser(request);
+
+        // Update user in Firestore
+        firestore.collection("users").document(userId).set(updatedUser).get();
+
+        LOGGER.info("User updated successfully with ID: " + userId);
     }
 
     /**
      * Delete a user by their ID.
      *
-     * @param userId The ID of the user to delete.
+     * @param userId The user's ID.
      */
-    public void deleteById(String userId) throws ExecutionException, InterruptedException {
+    public void deleteUser(String userId) throws FirebaseAuthException, ExecutionException, InterruptedException {
         LOGGER.info("Deleting user with ID: " + userId);
-        ApiFuture<WriteResult> result = firestore.collection("users").document(userId).delete();
-        LOGGER.info("User deleted: " + userId + ". Update time: " + result.get().getUpdateTime());
+
+        // Delete user in Firebase Authentication
+        FirebaseAuth.getInstance().deleteUser(userId);
+
+        // Delete user from Firestore
+        firestore.collection("users").document(userId).delete().get();
+
+        LOGGER.info("User deleted successfully with ID: " + userId);
     }
 
     /**
-     * Finds a user by their identifier (username or email).
+     * Activate or deactivate a user.
      *
-     * @param identifier The username or email of the user.
-     * @return The BaseUser object or null if not found.
+     * @param userId   The user's ID.
+     * @param isActive Boolean to indicate activation or deactivation.
+     * @return
      */
-    private BaseUser findUserByIdentifier(String identifier) throws ExecutionException, InterruptedException {
-        CollectionReference usersCollection = firestore.collection("users");
+    public boolean activateDeactivateUser(String userId, boolean isActive) throws ExecutionException, InterruptedException {
+        LOGGER.info((isActive ? "Activating" : "Deactivating") + " user with ID: " + userId);
 
-        // Query Firestore for the user with the provided identifier
-        ApiFuture<QuerySnapshot> query = usersCollection.whereEqualTo("username", identifier).get();
-        List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+        DocumentReference userDocRef = firestore.collection("users").document(userId);
+        userDocRef.update("isActive", isActive).get();
 
-        if (documents.isEmpty()) {
-            LOGGER.info("No user found by username, trying email.");
-            query = usersCollection.whereEqualTo("email", identifier).get();
-            documents = query.get().getDocuments();
-
-            if (documents.isEmpty()) {
-                LOGGER.warning("User not found with identifier: " + identifier);
-                return null; // User not found
-            }
-        }
-
-        DocumentSnapshot document = documents.get(0);
-        return resolveUserByRole(document.getString("role"), document);
+        LOGGER.info("User status updated successfully with ID: " + userId);
+        return isActive;
     }
 
-    /**
-     * Resolves a user to its specific subclass based on the role.
-     *
-     * @param role     The role of the user.
-     * @param snapshot The Firestore snapshot containing user data.
-     * @return A specific subclass of BaseUser, or null if the role is unrecognized.
-     */
-    private BaseUser resolveUserByRole(String role, DocumentSnapshot snapshot) {
-        if (role == null) {
-            LOGGER.warning("Role is null for document: " + snapshot.getId());
-            return null;
-        }
+    // Additional methods to align with the use cases
 
-        LOGGER.info("Resolving user role: " + role + " for document: " + snapshot.getId());
-        return switch (role) {
-            case "Admin" -> snapshot.toObject(Administrator.class);
-            case "Moderator" -> snapshot.toObject(Moderator.class);
-            case "ContentCreator" -> snapshot.toObject(ContentCreator.class);
-            case "RegularUser" -> snapshot.toObject(RegularUser.class);
-            default -> {
-                LOGGER.warning("Unknown role: " + role + " for document: " + snapshot.getId());
-                yield null;
-            }
-        };
+    public void followContentCreator(String userId, String creatorId) throws ExecutionException, InterruptedException {
+        LOGGER.info("User " + userId + " following content creator " + creatorId);
+
+        DocumentReference userDocRef = firestore.collection("users").document(userId);
+        userDocRef.update("followingCreators", FieldValue.arrayUnion(creatorId)).get();
+
+        LOGGER.info("User followed content creator successfully with ID: " + creatorId);
     }
 
-    /**
-     * Validates input parameters.
-     */
-    private void validateInput(String identifier, String password) {
-        if (identifier == null || password == null) {
-            LOGGER.warning("Identifier or password cannot be null");
-            throw new IllegalArgumentException("Identifier or password cannot be null");
-        }
+    public void uploadGameContent(String creatorId, GameContent gameContent) throws ExecutionException, InterruptedException {
+        LOGGER.info("Content creator " + creatorId + " uploading game content");
+
+        firestore.collection("gameContent").document().set(gameContent).get();
+
+        LOGGER.info("Game content uploaded successfully by creator ID: " + creatorId);
     }
 
-    /**
-     * Validates user object.
-     */
-    private void validateUser(BaseUser user) {
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            LOGGER.warning("Password is required but was not provided for user: " + user.getUsername());
-            throw new IllegalArgumentException("Password is required");
-        }
+    public void flagInappropriateContent(String contentId, String reason) throws ExecutionException, InterruptedException {
+        LOGGER.info("Flagging content with ID: " + contentId + " for reason: " + reason);
+
+        DocumentReference contentDocRef = firestore.collection("gameContent").document(contentId);
+        contentDocRef.update("isFlagged", true, "flagReason", reason).get();
+
+        LOGGER.info("Content flagged successfully with ID: " + contentId);
     }
 
-    /**
-     * Sets the identifier for a user if it is not already set.
-     */
-    private void setUserIdentifier(BaseUser user) {
-        if (user.getIdentifier() == null || user.getIdentifier().isEmpty()) {
-            user.setIdentifier(user.getUsername() != null ? user.getUsername().toLowerCase() : user.getEmail().toLowerCase());
-        }
+    public void bookmarkGameInformation(String userId, String gameInfoId) throws ExecutionException, InterruptedException {
+        LOGGER.info("User " + userId + " bookmarking game information " + gameInfoId);
+
+        DocumentReference userDocRef = firestore.collection("users").document(userId);
+        userDocRef.update("bookmarkedGames", FieldValue.arrayUnion(gameInfoId)).get();
+
+        LOGGER.info("Game information bookmarked successfully with ID: " + gameInfoId);
     }
 
-    /**
-     * Writes a user to Firestore.
-     */
-    private void writeToFirestore(String userId, BaseUser user) throws ExecutionException, InterruptedException {
+
+    public String flagUser(String userId, boolean flagged) throws ExecutionException, InterruptedException {
+        LOGGER.info("Flagging user with ID: " + userId + " as flagged: " + flagged);
+
         DocumentReference docRef = firestore.collection("users").document(userId);
-        ApiFuture<WriteResult> result = docRef.set(user, SetOptions.merge());
-        LOGGER.info("User write request sent for user: " + userId + ". Update time: " + result.get().getUpdateTime());
-    }
+        ApiFuture<WriteResult> writeResult = docRef.update("flagged", flagged);
+        writeResult.get(); // Wait for Firestore to complete the write operation
 
-    /**
-     * Updates a specific field in Firestore.
-     */
-    private void updateField(String userId, String field, Object value) throws ExecutionException, InterruptedException {
-        LOGGER.info("Updating field " + field + " for user with ID: " + userId);
-        ApiFuture<WriteResult> result = firestore.collection("users").document(userId).update(field, value);
-        LOGGER.info("Field " + field + " updated for user: " + userId + ". Update time: " + result.get().getUpdateTime());
-    }
+        LOGGER.info("User with ID " + userId + " flagged status updated successfully.");
 
-    /**
-     * Gets users by a specific field value.
-     */
-    private List<BaseUser> getUsersByField(String field, Object value) throws ExecutionException, InterruptedException {
-        LOGGER.info("Fetching users by field: " + field + " with value: " + value);
-        List<BaseUser> users = new ArrayList<>();
-        List<QueryDocumentSnapshot> documents = firestore.collection("users").whereEqualTo(field, value).get().get().getDocuments();
-
-        for (QueryDocumentSnapshot document : documents) {
-            BaseUser user = resolveUserByRole(document.getString("role"), document);
-            if (user != null) {
-                users.add(user);
-            }
-        }
-
-        LOGGER.info("Total users found with " + field + " = " + value + ": " + users.size());
-        return users;
+        return flagged ? "User flagged successfully." : "User unflagged successfully.";
     }
 }
+

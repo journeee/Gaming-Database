@@ -54,7 +54,7 @@ public class GsDatabaseApplication implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Call the FirestoreSeeder methods to insert sample data on startup
-        FirestoreSeeder.seedUsers();
+      //  FirestoreSeeder.seedUsers();
         FirestoreSeeder.seedGameContent();
         FirestoreSeeder.seedBookmarks();
         FirestoreSeeder.seedGames();

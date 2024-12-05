@@ -1,5 +1,6 @@
 package edu.famu.gsdatabase.controllers;
 
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import edu.famu.gsdatabase.models.BaseUser;
 import edu.famu.gsdatabase.service.GameContentService;
 import edu.famu.gsdatabase.service.UserService;
@@ -80,13 +81,14 @@ public class ModeratorAdminController {
      * Flag a user for review (Moderator functionality).
      *
      * @param userId The ID of the user to flag.
+     * @param flagged Boolean indicating if the user is flagged.
      * @return A response indicating the success or failure of the operation.
      */
     @PostMapping("/flag/user/{userId}")
-    public ResponseEntity<ApiResponseFormat<String>> flagUser(@PathVariable String userId) {
+    public ResponseEntity<ApiResponseFormat<String>> flagUser(@PathVariable String userId, @RequestParam boolean flagged) {
         try {
-            String result = userService.flagUser(userId);
-            return ResponseEntity.ok(new ApiResponseFormat<>(true, "User flagged successfully", result, null));
+            String result = userService.flagUser(userId, flagged);
+            return ResponseEntity.ok(new ApiResponseFormat<>(true, result, userId, null));
         } catch (ExecutionException | InterruptedException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseFormat<>(false, "Error flagging user", null, e.getMessage()));
@@ -103,7 +105,7 @@ public class ModeratorAdminController {
     @GetMapping("/users")
     public ResponseEntity<ApiResponseFormat<List<BaseUser>>> getAllUsers() {
         try {
-            List<BaseUser> users = userService.getAllUsers();
+            List<QueryDocumentSnapshot> users = userService.getAllUsers();
             if (users.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT)
                         .body(new ApiResponseFormat<>(true, "No users found", null, null));
@@ -130,60 +132,6 @@ public class ModeratorAdminController {
         } catch (ExecutionException | InterruptedException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponseFormat<>(false, "Error updating user status", null, e.getMessage()));
-        }
-    }
-
-    /**
-     * Delete a user (Admin functionality).
-     *
-     * @param userId The ID of the user to delete.
-     * @return A success or error message.
-     */
-    @DeleteMapping("/user/{userId}")
-    public ResponseEntity<ApiResponseFormat<String>> deleteUser(@PathVariable String userId) {
-        try {
-            userService.deleteById(userId);
-            return ResponseEntity.ok(new ApiResponseFormat<>(true, "User deleted successfully", null, null));
-        } catch (ExecutionException | InterruptedException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponseFormat<>(false, "Error deleting user", null, e.getMessage()));
-        }
-    }
-
-    /**
-     * List all inactive users (Admin functionality).
-     *
-     * @return List of inactive users or an appropriate error message.
-     */
-    @GetMapping("/users/inactive")
-    public ResponseEntity<ApiResponseFormat<List<BaseUser>>> getInactiveUsers() {
-        try {
-            List<BaseUser> inactiveUsers = userService.getInactiveUsers();
-            if (inactiveUsers.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                        .body(new ApiResponseFormat<>(true, "No inactive users found", null, null));
-            }
-            return ResponseEntity.ok(new ApiResponseFormat<>(true, "Inactive users retrieved successfully", inactiveUsers, null));
-        } catch (ExecutionException | InterruptedException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponseFormat<>(false, "Error retrieving inactive users", null, e.getMessage()));
-        }
-    }
-
-    /**
-     * Promote a user to Admin (Admin functionality).
-     *
-     * @param userId The ID of the user to promote.
-     * @return A success or error message.
-     */
-    @PatchMapping("/user/{userId}/promote")
-    public ResponseEntity<ApiResponseFormat<String>> promoteUserToAdmin(@PathVariable String userId) {
-        try {
-            userService.promoteToAdmin(userId);
-            return ResponseEntity.ok(new ApiResponseFormat<>(true, "User promoted to Admin successfully", null, null));
-        } catch (ExecutionException | InterruptedException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponseFormat<>(false, "Error promoting user to Admin", null, e.getMessage()));
         }
     }
 }

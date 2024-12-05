@@ -1,6 +1,7 @@
 package edu.famu.gsdatabase.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.firebase.auth.UserRecord;
 import edu.famu.gsdatabase.models.BaseUser;
 import edu.famu.gsdatabase.models.Bookmark;
 import edu.famu.gsdatabase.models.GameContent;
@@ -20,6 +21,7 @@ public class User extends BaseUser {
         this.savedGames = savedGames;
         this.savedBookmarks = savedBookmarks;
     }
+
 
     @Override
     public void performRoleSpecificTask() {
