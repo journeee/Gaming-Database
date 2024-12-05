@@ -1,36 +1,82 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #0d1b2a; /* Match the dark blue background of the logo */
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
 .login-container {
     max-width: 400px;
     margin: 0 auto;
-    padding: 20px;
-    background: #f7f7f7;
-    border-radius: 8px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    background: #14213d; /* Match the darker tones of the logo */
+    border-radius: 12px;
+    box-shadow: 0px 8px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+/* Add the logo as a background */
+.login-container::before {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px auto;
+    background-image: url(/Users/journeeh/Downloads/Gaming-Database-main/Frontend/images/logo.jpeg); /* Adjust path to your logo */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.login-container img {
+    width: 100px;
+    height: auto;
+    margin-bottom: 20px;
 }
 
 .login-container h1 {
-    text-align: center;
-    color: #333;
+    font-size: 24px;
+    color: #e63946; /* Match the red tones in the logo */
+    margin-bottom: 20px;
 }
 
 .login-form input {
     width: 100%;
     margin: 10px 0;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 12px;
+    border: 2px solid #3a86ff; /* Match the blue in the logo */
+    border-radius: 6px;
+    background-color: #f1faee;
+    color: #333;
+    font-size: 16px;
+}
+
+.login-form input::placeholder {
+    color: #6c757d;
 }
 
 .login-button {
     width: 100%;
-    padding: 10px;
-    background: #007bff;
-    color: white;
+    padding: 12px;
+    background: #3a86ff; /* Match the blue in the logo */
+    color: #ffffff;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+    background-color: #264653; /* Slightly darker shade */
 }
 
 .error-message {
-    color: red;
-    text-align: center;
+    color: #e63946; /* Match the red tones in the logo */
+    margin-top: 10px;
+    font-size: 14px;
 }

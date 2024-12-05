@@ -1,22 +1,47 @@
 /* General Dashboard Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #0d1b2a; /* Match the dark blue from the logo */
+    color: #ffffff;
+}
+
 .dashboard {
     padding: 20px;
-    font-family: Arial, sans-serif;
     text-align: center;
-    background-color: #f4f4f4;
     min-height: 100vh;
 }
 
+/* Header Styles */
 .dashboard header {
-    background-color: #333;
-    color: #fff;
+    background-color: #14213d; /* Match the darker tones of the logo */
+    color: #ffffff;
     padding: 20px;
-    margin-bottom: 20px;
+    border-bottom: 4px solid #e63946; /* Match the red from the logo */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .dashboard h1 {
     margin: 0;
-    font-size: 2.5rem;
+    font-size: 3rem;
+    color: #3a86ff; /* Match the blue from the logo */
+    font-weight: bold;
+}
+
+/* Dashboard Content Area */
+.dashboard-content {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #14213d; /* Match darker tones */
+    box-shadow: 0px 8px 10px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-content h2 {
+    font-size: 2rem;
+    color: #e63946; /* Match the red from the logo */
+    margin-bottom: 15px;
 }
 
 /* Buttons */
@@ -25,28 +50,65 @@
     padding: 15px 25px;
     border: none;
     font-size: 1.2rem;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    background-color: #3a86ff; /* Match the blue in the logo */
+    color: #ffffff;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-content button:hover {
-    background-color: #444;
-    color: #fff;
+    background-color: #264653; /* Slightly darker blue */
+    transform: translateY(-3px);
+    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Specific Dashboards */
+/* Cards/Sections for Different Dashboard Views */
+.dashboard-content .section {
+    padding: 20px;
+    margin: 20px auto;
+    border-radius: 8px;
+    background-color: #1d3557; /* Match subtle tones */
+    color: #ffffff;
+    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-content .section h3 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #f1faee;
+}
+
+.dashboard-content .section p {
+    font-size: 1rem;
+    color: #a8dadc;
+}
+
+/* User Roles - Specific Dashboards */
 .admin-dashboard .dashboard-content {
-    background-color: #ffcccc;
+    background-color: #e63946; /* Admin: Red */
 }
 
 .moderator-dashboard .dashboard-content {
-    background-color: #ccffcc;
+    background-color: #3a86ff; /* Moderator: Blue */
 }
 
 .content-creator-dashboard .dashboard-content {
-    background-color: #ccccff;
+    background-color: #264653; /* Content Creator: Dark Green */
 }
 
 .regular-user-dashboard .dashboard-content {
-    background-color: #ffffcc;
+    background-color: #2a9d8f; /* Regular User: Teal */
+}
+
+/* Footer */
+.dashboard footer {
+    margin-top: 30px;
+    padding: 10px;
+    background-color: #14213d;
+    color: #a8dadc;
+    font-size: 0.9rem;
+    text-align: center;
+    border-top: 2px solid #3a86ff;
 }
