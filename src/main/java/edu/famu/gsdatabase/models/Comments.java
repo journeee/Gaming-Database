@@ -1,34 +1,19 @@
 package edu.famu.gsdatabase.models;
 
-import lombok.Getter;
+import com.google.cloud.Timestamp;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-public class Comments {
-    // Getters and Setters
-    private int commentId;
-    private int userId; // Foreign key
-    private int contentId; // Foreign key
-    private String commentText;
-    private String createdAt;
+@Data
+@NoArgsConstructor
+public class Comments extends AComments{
 
-    public void setCommentId(int commentId) {
-        this.commentId = commentId;
-    }
+    private Users Creator;
+    private Gamecontent ParentContent;
 
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
-
-    public void setContentId(int contentId) {
-        this.contentId = contentId;
-    }
-
-    public void setCommentText(String commentText) {
-        this.commentText = commentText;
-    }
-
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
+    public Comments(String commentId, String content, String status, Timestamp uploadDate, Users Creator,Gamecontent ParentContent ){
+        super(commentId,content,status, uploadDate);
+        this.Creator = Creator;
+        this.ParentContent=  ParentContent;
     }
 }
-
